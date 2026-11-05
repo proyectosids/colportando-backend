@@ -1,6 +1,6 @@
 # SPEC-001 SaaS instituciones y aislamiento
 
-Estado: **pendiente de validación**
+Estado: **aprobada el 2026-11-05**
 
 ## Objetivo y alcance
 
@@ -18,7 +18,7 @@ Análisis consolidado, SRS, manual Kerusso, SQL preliminar y reglas SaaS del enc
 - SAAS-004 `PROMPT`: plataforma y tenant tienen administradores separados.
 - SAAS-005 `PROMPT`: toda FK tenant-owned impide cruce de tenant; validación de aplicación es adicional.
 - SAAS-006 `PROMPT`: servicio contempla ciclo de vida sin borrar históricos financieros.
-- SAAS-007 `PEND`: planes/suscripciones sólo se implementan después de definir reglas comerciales.
+- SAAS-007 `APROBADO`: planes, cobros, pasarela y facturación comercial quedan fuera de V1.
 
 ## Actores y permisos
 
@@ -45,4 +45,4 @@ Referencias futuras bajo `/api/v1/institutions`, `/clubs` y `/platform/tenants`;
 
 ## Dependencias, decisiones y exclusiones
 
-Bloquea: aprobar tenant = institución y clubes independientes. Excluye facturación, pasarela, precios, límites y RLS definitivo. Tareas: G-001, I0-002, I7-001. ADR-001.
+Tenant = institución fue aprobado; un club independiente usa un tenant institucional mínimo. Excluye facturación, pasarela, precios, límites y RLS definitivo. Tareas: I0-002, I7-001. ADR-001.

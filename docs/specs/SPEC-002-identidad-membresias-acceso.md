@@ -1,6 +1,6 @@
 # SPEC-002 Identidad membresías y acceso
 
-Estado: **pendiente de validación**
+Estado: **aprobada el 2026-11-05**
 
 ## Objetivo y alcance
 

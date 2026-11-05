@@ -1,6 +1,6 @@
 # SPEC-003 Capacitación y transición de integrante
 
-Estado: **pendiente de validación**
+Estado: **aprobada el 2026-11-05**
 
 ## Objetivo y alcance
 
@@ -13,16 +13,16 @@ Análisis/SRS (capacitaciones y asistencias), manual Kerusso (instituto, evaluac
 ## Requisitos
 
 - TRN-001 `PROMPT`: aspirantes participan en capacitación registrable.
-- TRN-002 `PROMPT`: criterios son versionados/configurables; no se inventa porcentaje global.
+- TRN-002 `APROBADO`: criterios son versionados por programa/club y configurados por administración autorizada; no existe porcentaje global.
 - TRN-003 `PROMPT`: avance se expone a Flutter y se autoriza en servidor.
 - TRN-004 `PROMPT`: promoción por cumplimiento y reconocimiento previo son operaciones diferentes.
 - TRN-005 `PROMPT`: ambas conservan actor, fecha, motivo y evidencia; reconocimiento nunca es público.
 - TRN-006 `DOC`: asistencia y evaluaciones se registran; 80% de Verano 2026 es regla de campaña pendiente, no valor global.
-- TRN-007 `PROP`: promoción usa snapshot de programa/criterios/evidencias para reproducibilidad.
+- TRN-007 `APROBADO`: promoción usa snapshot de programa/criterios/evidencias y requiere aprobación administrativa explícita.
 
 ## Actores y permisos
 
-Aspirante consulta su avance; facilitador registra sesión/asistencia/resultados; AdminClub autorizado decide promoción/reconocimiento; auditor consulta historial. `PEND` autoridad exacta.
+Aspirante consulta su avance; facilitador registra sesión/asistencia/resultados; AdminClub con permiso específico decide promoción/reconocimiento; auditor consulta historial.
 
 ## Flujos y errores
 
@@ -46,4 +46,4 @@ Programas/sesiones, inscripción, asistencia, avance, solicitudes/decisiones y r
 
 ## Dependencias, decisiones y exclusiones
 
-Pendiente: criterios, autoridad, promoción automática/manual, evidencia previa y vigencia entre clubes. Excluye contenidos multimedia avanzados. Tareas: I2-001, I2-002. ADR-002 y ADR-003.
+Los criterios concretos se definirán por versión de programa; la aprobación es manual y la condición no se transfiere automáticamente entre clubes. Excluye contenidos multimedia avanzados. Tareas: I2-001, I2-002. ADR-002 y ADR-003.

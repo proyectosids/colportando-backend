@@ -1,6 +1,6 @@
 # SPEC-007 Arquitectura y contrato HTTP
 
-Estado: **pendiente de validación**
+Estado: **aprobada el 2026-11-05**
 
 ## Objetivo y alcance
 

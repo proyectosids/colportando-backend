@@ -1,6 +1,6 @@
 # ADR-004 Evidencia financiera e idempotencia
 
-Estado: **propuesta pendiente de validación**
+Estado: **aceptada el 2026-11-05**
 Fecha: 2026-11-05
 
 ## Contexto

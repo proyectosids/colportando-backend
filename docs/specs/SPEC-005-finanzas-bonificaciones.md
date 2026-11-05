@@ -1,6 +1,6 @@
 # SPEC-005 Finanzas créditos depósitos y bonificaciones
 
-Estado: **pendiente de validación**
+Estado: **aprobada el 2026-11-05 con cálculo automático bloqueado**
 
 ## Objetivo y alcance
 

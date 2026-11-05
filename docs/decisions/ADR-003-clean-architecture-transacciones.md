@@ -1,6 +1,6 @@
 # ADR-003 Clean Architecture modular y transacciones abstractas
 
-Estado: **propuesta técnica pendiente de validación de etapa**
+Estado: **aceptada el 2026-11-05**
 Fecha: 2026-11-05
 
 ## Contexto

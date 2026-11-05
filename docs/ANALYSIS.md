@@ -1,6 +1,6 @@
 # Análisis y propuesta de etapa 1
 
-Estado: **pendiente de validación**
+Estado: **aprobado el 2026-11-05**
 Fecha: 2026-11-05
 
 Este documento consolida los diez entregables. Distingue `DOC` (fuentes), `PROMPT` (encargo actual), `PROP` (propuesta técnica) y `PEND` (decisión pendiente). No autoriza implementación ni migraciones.

@@ -1,6 +1,6 @@
 # SPEC-004 Campañas materiales y ventas
 
-Estado: **pendiente de validación**
+Estado: **aprobada el 2026-11-05**
 
 ## Objetivo y alcance
 
@@ -18,7 +18,7 @@ Análisis consolidado/inicial, SRS, casos de uso, modelo conceptual, manual y SQ
 - OPS-004 `DOC/PROMPT`: venta conserva precios/condiciones aplicados; pagos, depósitos y adquisiciones son hechos distintos.
 - OPS-005 `DOC`: cancelación/reembolso requiere resolución y evidencia; no borrado silencioso.
 - OPS-006 `PROMPT`: ventas, pagos y escrituras móviles sensibles son idempotentes.
-- OPS-007 `PEND`: stock propio del club sólo se implementa si se aprueba alcance de inventario.
+- OPS-007 `APROBADO`: V1 registra catálogo, adquisiciones y material asignado; no implementa ledger de stock propio ni inventario interno de GEMA.
 
 ## Actores y permisos
 

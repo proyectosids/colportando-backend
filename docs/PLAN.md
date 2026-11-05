@@ -7,9 +7,9 @@ Los estados permitidos son `pendiente`, `en curso`, `bloqueada` y `completada`. 
 | A-001 | Todas | Inventario y análisis de fuentes | Ninguna | completada | Agente principal | `docs/ANALYSIS.md` e inventario con hashes |
 | A-002 | Todas | Contraste del SQL preliminar | A-001 | completada | Datos/revisión | Matriz de diferencias; SQL no ejecutado |
 | A-003 | Todas | Propuesta SaaS, acceso, datos y arquitectura | A-001, A-002 | completada | Agente principal | Especificaciones y ADR en borrador |
-| G-001 | Todas | Validación de modelo de negocio y datos | A-003 | bloqueada | Usuario | Respuestas a decisiones de `PROJECT_STATE.md`; estados de specs actualizados |
-| I0-001 | SPEC-006, SPEC-007 | Bootstrap Node/TS/Express/Clean Architecture | G-001 | pendiente | Backend | Build, lint, typecheck y prueba de salud; OpenAPI base válida |
-| I0-002 | SPEC-001, SPEC-002 | Migraciones base tenant/institución/club/identidad/acceso | G-001, I0-001 | pendiente | Datos | Migración fresh-install reversible y pruebas de FKs cross-tenant |
+| G-001 | Todas | Validación de modelo de negocio y datos | A-003 | completada | Usuario | Aprobación recibida 2026-11-05; specs y ADR aprobados |
+| I0-001 | SPEC-006, SPEC-007 | Bootstrap Node/TS/Express/Clean Architecture | G-001 | completada | Backend | Typecheck, lint, 6 unitarias, 6 HTTP, OpenAPI y build aprobados |
+| I0-002 | SPEC-001, SPEC-002 | Migraciones base tenant/institución/club/identidad/acceso | G-001, I0-001 | en curso | Datos | DDL/runner y pruebas estáticas listos; falta ejecutar up/down y negativas en SQL Server temporal |
 | I1-001 | SPEC-006 | Cuenta, sesión, verificación y recuperación | I0-002 | pendiente | Backend | Tokens hash, expiración/uso único, rotación; pruebas y Swagger |
 | I1-002 | SPEC-002, SPEC-006 | Invitación y alta pública como aspirante | I1-001 | pendiente | Backend | Registro no permite elevar condición/roles; pruebas tenant y retry |
 | I2-001 | SPEC-003 | Programas, sesiones, inscripción y asistencias | I1-002 | pendiente | Backend/datos | Casos de uso completos, transacciones, OpenAPI y pruebas |
