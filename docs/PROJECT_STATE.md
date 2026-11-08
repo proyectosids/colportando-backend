@@ -4,7 +4,7 @@ Actualizado: 2026-11-08 (America/Mexico_City)
 
 ## Fase actual
 
-Etapa 2, incremento I0. I0-001 está completado y verificado. I0-002 ya fue aplicado en SQL Server y sus invariantes multitenant fueron verificadas dentro de una transacción reversible; sólo falta ensayar `down` en una base temporal aislada.
+Etapa 2. I0-001 e I1-001 están completados y verificados. I0-002 ya fue aplicado en SQL Server y sus invariantes multitenant fueron verificadas; sólo falta ensayar `down` en una base temporal aislada.
 
 ## Completado y verificado
 
@@ -21,6 +21,11 @@ Etapa 2, incremento I0. I0-001 está completado y verificado. I0-002 ya fue apli
 - Revisión de seguridad integrada: evidencia obligatoria para promoción/reconocimiento, actor vinculado a asignación tenant, exclusión consumir/revocar token y JSON inválido como 400.
 - Migraciones `0001` y `0002` aplicadas en SQL Server real: 2 versiones registradas y 19 tablas creadas. Una segunda ejecución no reaplicó versiones.
 - Verificación transaccional reproducible: referencias cruzadas de club, membresía y acceso fueron rechazadas; cuenta administrativa sin membresía aceptada; membresía predeterminada `ASPIRANT`; alta inicial `COLPORTOR` rechazada. Los datos de prueba se revirtieron.
+- I1-001: autenticación por correo/contraseña con Argon2id, JWT HS256 corto validado contra sesión activa, refresh tokens rotativos por familia y revocación ante reutilización.
+- Verificación de correo y recuperación mediante tokens opacos aleatorios guardados como HMAC-SHA-256, expiración, propósito, revocación previa y consumo único con efecto atómico.
+- Reset de contraseña revoca sesiones, familias y refresh tokens; logout por refresh token es idempotente y revoca la familia completa.
+- Migración `0003_auth_sessions` aplicada en SQL Server; flujo real completo aprobado con fixtures aleatorios eliminados al finalizar.
+- API `/api/v1/auth`: login, refresh, logout, solicitud/confirmación de verificación, solicitud/confirmación de reset y perfil autenticado `/me`; OpenAPI alineado.
 
 ## Decisiones aprobadas
 
@@ -38,7 +43,8 @@ Etapa 2, incremento I0. I0-001 está completado y verificado. I0-002 ya fue apli
 ## Trabajo parcial y limitaciones
 
 - Los scripts `down` aún no se han ejecutado: deben probarse en una base temporal aislada, no sobre la base configurada que acaba de recibir el esquema.
-- Sólo health está operativo. Autenticación, membresías, capacitación y módulos de negocio siguen pendientes.
+- El proveedor de correo sigue sin definirse. El puerto de entrega está implementado y probado; el adaptador activo sólo advierte sin registrar token, correo ni secretos, por lo que los enlaces no se envían todavía a usuarios reales.
+- La creación/vinculación pública de cuenta, Persona y membresía pertenece a I1-002; capacitación y módulos operativos siguen pendientes.
 - El manual Kerusso describe organización y funciones; no prueba por sí solo todas las reglas del programa institucional.
 - La presentación de bonificación aporta ejemplos/reglas de Verano 2026 que deben validarse con Finanzas antes de convertirse en fórmulas del sistema.
 - No hay proyectos Flutter o React presentes en la raíz inspeccionada; no se pudieron contrastar contratos de clientes.
@@ -54,13 +60,14 @@ Etapa 2, incremento I0. I0-001 está completado y verificado. I0-002 ya fue apli
 - `codex --version` y ayuda local; consulta de documentación oficial sobre multiagente/configuración.
 - `npm run typecheck`: aprobado.
 - `npm run lint`: aprobado.
-- `npm test`: 3 archivos, 6 pruebas aprobadas.
-- `npm run test:integration`: 1 archivo, 6 pruebas HTTP aprobadas (requirió permitir puerto local efímero).
+- `npm test`: 4 archivos, 12 pruebas aprobadas.
+- `npm run test:integration`: 2 archivos, 10 pruebas HTTP aprobadas (requirió permitir puerto local efímero).
 - `npm run openapi:validate`: aprobado.
 - `npm run build`: aprobado.
 - `npm audit --omit=dev`: 0 vulnerabilidades de producción. El toolchain de desarrollo conserva 7 avisos moderados transitivos de `minimatch`; forzar la corrección propuesta rompería compatibilidad TypeScript/ESLint.
 - Migraciones: pares up/down, transacciones y checksums verificados; `up` e idempotencia ejecutados en SQL Server real. `npm run database:verify-foundation` aprobó seis invariantes y revirtió sus fixtures.
+- `npm run database:verify-auth`: verificación de correo, login, rotación, rechazo de reutilización, invalidación de access token, reset, nuevo login y logout aprobados en SQL Server real.
 
 ## Siguiente acción concreta
 
-Iniciar I1-001 (cuenta, sesión, verificación y recuperación). En paralelo, cuando exista una base temporal descartable, ejecutar allí los scripts `down` para cerrar por completo I0-002.
+Iniciar I1-002: invitación y alta pública que crea/vincula cuenta, Persona y membresía siempre como `ASPIRANT`, con transacción e idempotencia. Elegir y configurar un proveedor de correo antes de pruebas con usuarios reales.

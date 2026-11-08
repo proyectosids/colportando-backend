@@ -7,6 +7,8 @@ import { pinoHttp } from "pino-http";
 import swaggerUi from "swagger-ui-express";
 
 import { GetHealthStatus } from "../modules/health/application/get-health-status.js";
+import type { AuthService } from "../modules/auth/application/auth-service.js";
+import { createAuthRouter } from "../modules/auth/presentation/http/auth-router.js";
 import { SystemClock } from "../modules/health/infrastructure/system-clock.js";
 import { createHealthRouter } from "../modules/health/presentation/http/health-router.js";
 import type { AppConfig } from "../shared/infrastructure/config/env.js";
@@ -19,9 +21,10 @@ import { createOpenApiDocument } from "../shared/presentation/http/openapi/docum
 export type CreateAppDependencies = Readonly<{
   config: AppConfig;
   logger: Logger;
+  authService?: AuthService;
 }>;
 
-export function createApp({ config, logger }: CreateAppDependencies): Express {
+export function createApp({ config, logger, authService }: CreateAppDependencies): Express {
   const app = express();
   const openApiDocument = createOpenApiDocument();
   const getHealthStatus = new GetHealthStatus(new SystemClock());
@@ -67,7 +70,8 @@ export function createApp({ config, logger }: CreateAppDependencies): Express {
         });
       }
     }),
-    createHealthRouter(getHealthStatus)
+    createHealthRouter(getHealthStatus),
+    ...(authService === undefined ? [] : [createAuthRouter(authService)])
   );
 
   if (config.swaggerEnabled) {

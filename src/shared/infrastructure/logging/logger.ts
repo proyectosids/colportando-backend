@@ -14,6 +14,8 @@ export function createLogger(config: AppConfig): Logger {
         "req.body.currentPassword",
         "req.body.newPassword",
         "req.body.token",
+        "req.body.refreshToken",
+        "req.body.accessToken",
         "password",
         "token",
         "refreshToken"

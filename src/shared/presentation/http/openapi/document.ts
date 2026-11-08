@@ -1,6 +1,7 @@
 import { OpenAPIRegistry, OpenApiGeneratorV3 } from "@asteasolutions/zod-to-openapi";
 
 import { healthResponseSchema } from "../../../../modules/health/presentation/http/health-schema.js";
+import { registerAuthOpenApi } from "../../../../modules/auth/presentation/http/auth-openapi.js";
 import { errorResponseSchema } from "../schemas/error-schema.js";
 
 export function createOpenApiDocument() {
@@ -14,6 +15,7 @@ export function createOpenApiDocument() {
     bearerFormat: "JWT",
     description: "Access token obtained from the authentication API."
   });
+  registerAuthOpenApi(registry);
   registry.registerPath({
     method: "get",
     path: "/api/v1/health",
@@ -49,7 +51,10 @@ export function createOpenApiDocument() {
       description: "Versioned SaaS API for Flutter and React clients."
     },
     servers: [{ url: "/", description: "Current server" }],
-    tags: [{ name: "System", description: "Operational API endpoints" }]
+    tags: [
+      { name: "System", description: "Operational API endpoints" },
+      { name: "Authentication", description: "Account verification, sessions and recovery" }
+    ]
   });
 }
 

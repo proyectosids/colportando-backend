@@ -6,7 +6,7 @@ Backend SaaS con Node.js, TypeScript, Express, SQL Server y `mssql`. La línea b
 
 - Node.js 22 o posterior.
 - npm.
-- SQL Server sólo para aplicar/verificar migraciones; el health check no abre conexión.
+- SQL Server disponible para iniciar la API y operar autenticación; el endpoint de health no ejecuta una consulta por solicitud.
 
 ## Instalación y ejecución
 
@@ -22,7 +22,13 @@ Con `PORT=3000`:
 - Swagger UI: `http://localhost:3000/api/docs`
 - OpenAPI JSON: `http://localhost:3000/api/openapi.json`
 
-`SWAGGER_ENABLED` controla tanto UI como JSON. En producción queda deshabilitado si no se establece explícitamente. No hay credenciales de prueba ni autenticación implementada todavía.
+`SWAGGER_ENABLED` controla tanto UI como JSON. En producción queda deshabilitado si no se establece explícitamente.
+
+## Autenticación
+
+I1-001 expone bajo `/api/v1/auth`: login, refresh rotativo, logout, verificación de correo, recuperación de contraseña y `/me`. Los access tokens son JWT cortos y los refresh/action tokens sólo se guardan como HMAC. La reutilización de un refresh token revoca su familia y sesión.
+
+Los secretos y TTL se configuran con `JWT_*`, `ACTION_TOKEN_PEPPER` y `AUTH_*`; en producción no se aceptan secretos de desarrollo. El proveedor de correo aún no está seleccionado: el puerto está listo, pero el adaptador actual no envía ni registra tokens.
 
 ## Migraciones
 
@@ -31,6 +37,7 @@ Configura las variables `SQL_*` de `.env` sobre una base vacía y ejecuta:
 ```powershell
 npm run migrate
 npm run database:verify-foundation
+npm run database:verify-auth
 ```
 
 El runner usa pool `mssql`, bloqueo de aplicación, transacción serializable, checksum SHA-256 e historial en `infra.schema_migration`. No lo ejecutes sobre el SQL preliminar ni una base con datos sin estrategia de adopción y respaldo. Los archivos `down` son sólo para desarrollo/ensayo y se ejecutan manualmente de forma consciente.

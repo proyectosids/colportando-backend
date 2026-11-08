@@ -10,7 +10,7 @@ Los estados permitidos son `pendiente`, `en curso`, `bloqueada` y `completada`. 
 | G-001 | Todas | Validación de modelo de negocio y datos | A-003 | completada | Usuario | Aprobación recibida 2026-11-05; specs y ADR aprobados |
 | I0-001 | SPEC-006, SPEC-007 | Bootstrap Node/TS/Express/Clean Architecture | G-001 | completada | Backend | Typecheck, lint, 6 unitarias, 6 HTTP, OpenAPI y build aprobados |
 | I0-002 | SPEC-001, SPEC-002 | Migraciones base tenant/institución/club/identidad/acceso | G-001, I0-001 | en curso | Datos | `up`, idempotencia y negativas multitenant aprobadas en SQL Server real; falta `down` en base temporal aislada |
-| I1-001 | SPEC-006 | Cuenta, sesión, verificación y recuperación | I0-002 | pendiente | Backend | Tokens hash, expiración/uso único, rotación; pruebas y Swagger |
+| I1-001 | SPEC-006 | Cuenta, sesión, verificación y recuperación | I0-002 | completada | Backend | Migración 0003 aplicada; Argon2id, JWT corto, refresh rotativo/reuse, acciones de uso único, SQL/HTTP/OpenAPI y pruebas aprobadas |
 | I1-002 | SPEC-002, SPEC-006 | Invitación y alta pública como aspirante | I1-001 | pendiente | Backend | Registro no permite elevar condición/roles; pruebas tenant y retry |
 | I2-001 | SPEC-003 | Programas, sesiones, inscripción y asistencias | I1-002 | pendiente | Backend/datos | Casos de uso completos, transacciones, OpenAPI y pruebas |
 | I2-002 | SPEC-003 | Promoción y reconocimiento por experiencia | I2-001 | pendiente | Backend/seguridad | Operaciones distintas, autorización, evidencia e historial verificadas |

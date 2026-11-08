@@ -27,6 +27,10 @@ describe("loadConfig", () => {
   });
 
   it("disables API documentation by default in production", () => {
-    expect(loadConfig({ NODE_ENV: "production" }).swaggerEnabled).toBe(false);
+    expect(loadConfig({
+      NODE_ENV: "production",
+      JWT_ACCESS_SECRET: "production-access-secret-at-least-32-characters",
+      ACTION_TOKEN_PEPPER: "production-token-pepper-at-least-32-characters"
+    }).swaggerEnabled).toBe(false);
   });
 });

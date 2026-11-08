@@ -28,6 +28,17 @@ function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     trustProxy: false,
     corsAllowedOrigins: ["https://flutter.example", "https://web.example"],
     swaggerEnabled: true,
+    auth: {
+      jwtIssuer: "test-issuer",
+      jwtAudience: "test-audience",
+      jwtAccessSecret: "test-access-secret-at-least-32-characters",
+      accessTtlSeconds: 900,
+      tokenPepper: "test-token-pepper-at-least-32-characters",
+      refreshTtlSeconds: 2_592_000,
+      sessionTtlSeconds: 7_776_000,
+      actionTokenTtlSeconds: 3_600,
+      passwordMinLength: 12
+    },
     ...overrides
   };
 }
