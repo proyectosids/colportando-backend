@@ -1,6 +1,6 @@
 # Migraciones SQL Server
 
-Estado: diseño fresh-install de I0-002. Ningún archivo se ha ejecutado contra una base de datos.
+Estado: `up` de I0-002 aplicado y verificado contra SQL Server el 2026-11-08. Los scripts `down` permanecen pendientes de ensayo en una base temporal aislada.
 
 ## Convención
 
@@ -34,6 +34,8 @@ Estado: diseño fresh-install de I0-002. Ningún archivo se ha ejecutado contra 
 8. Intentar evento inicial con `COLPORTOR` o reconocimiento/promoción sin evidencia: debe fallar.
 9. Intentar consumir/reutilizar una clave idempotente duplicada en el mismo ámbito: debe fallar o devolver el registro existente desde la API.
 10. Ejecutar `down` en una base temporal y comprobar que `0001` puede revertirse después.
+
+El runner ya cubrió la aplicación real de `up` y una segunda ejecución idempotente. `npm run database:verify-foundation` cubre las comprobaciones 3 a 7 y el rechazo del alta inicial inválida de la 8; abre una transacción y revierte todos sus datos de verificación. La reutilización de claves idempotentes se probará con la API que las consuma.
 
 ## Límites actuales
 

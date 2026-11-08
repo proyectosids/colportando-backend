@@ -16,7 +16,8 @@
     "test": "vitest run --exclude tests/integration/**",
     "test:integration": "vitest run tests/integration",
     "openapi:validate": "tsx scripts/validate-openapi.ts",
-    "migrate": "tsx src/shared/infrastructure/database/migrate.ts"
+    "migrate": "tsx src/shared/infrastructure/database/migrate.ts",
+    "database:verify-foundation": "tsx scripts/verify-foundation-database.ts"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^9.1.0",

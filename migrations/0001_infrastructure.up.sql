@@ -4,7 +4,7 @@ BEGIN TRANSACTION;
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'infra') EXEC(N'CREATE SCHEMA infra');
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'platform') EXEC(N'CREATE SCHEMA platform');
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'organization') EXEC(N'CREATE SCHEMA organization');
-IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'identity') EXEC(N'CREATE SCHEMA identity');
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'identity') EXEC(N'CREATE SCHEMA [identity]');
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'membership') EXEC(N'CREATE SCHEMA membership');
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'authorization') EXEC(N'CREATE SCHEMA [authorization]');
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'audit') EXEC(N'CREATE SCHEMA audit');

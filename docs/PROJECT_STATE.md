@@ -1,10 +1,10 @@
 # Estado del proyecto
 
-Actualizado: 2026-11-05 (America/Mexico_City)
+Actualizado: 2026-11-08 (America/Mexico_City)
 
 ## Fase actual
 
-Etapa 2, incremento I0. I0-001 está completado y verificado. I0-002 está implementado y verificado estáticamente, pero sigue en curso hasta ejecutar up/down y pruebas negativas en una instancia temporal de SQL Server.
+Etapa 2, incremento I0. I0-001 está completado y verificado. I0-002 ya fue aplicado en SQL Server y sus invariantes multitenant fueron verificadas dentro de una transacción reversible; sólo falta ensayar `down` en una base temporal aislada.
 
 ## Completado y verificado
 
@@ -19,6 +19,8 @@ Etapa 2, incremento I0. I0-001 está completado y verificado. I0-002 está imple
 - Runner `mssql` con pool, checksum, bloqueo de aplicación, transacción serializable e historial.
 - Migraciones fresh-install: infraestructura y 18 tablas fundacionales con 32 FKs, condición por membresía, tokens hash, RBAC con alcance, cargos, auditoría e idempotencia.
 - Revisión de seguridad integrada: evidencia obligatoria para promoción/reconocimiento, actor vinculado a asignación tenant, exclusión consumir/revocar token y JSON inválido como 400.
+- Migraciones `0001` y `0002` aplicadas en SQL Server real: 2 versiones registradas y 19 tablas creadas. Una segunda ejecución no reaplicó versiones.
+- Verificación transaccional reproducible: referencias cruzadas de club, membresía y acceso fueron rechazadas; cuenta administrativa sin membresía aceptada; membresía predeterminada `ASPIRANT`; alta inicial `COLPORTOR` rechazada. Los datos de prueba se revirtieron.
 
 ## Decisiones aprobadas
 
@@ -35,7 +37,7 @@ Etapa 2, incremento I0. I0-001 está completado y verificado. I0-002 está imple
 
 ## Trabajo parcial y limitaciones
 
-- El DDL fundacional existe, pero no se ejecutó porque no hay instancia SQL Server disponible; Docker Desktop tampoco estaba iniciado.
+- Los scripts `down` aún no se han ejecutado: deben probarse en una base temporal aislada, no sobre la base configurada que acaba de recibir el esquema.
 - Sólo health está operativo. Autenticación, membresías, capacitación y módulos de negocio siguen pendientes.
 - El manual Kerusso describe organización y funciones; no prueba por sí solo todas las reglas del programa institucional.
 - La presentación de bonificación aporta ejemplos/reglas de Verano 2026 que deben validarse con Finanzas antes de convertirse en fórmulas del sistema.
@@ -47,7 +49,7 @@ Etapa 2, incremento I0. I0-001 está completado y verificado. I0-002 está imple
 - Extracción estructural completa de los ocho DOCX. No contenían comentarios ni cambios controlados; algunos metadatos de páginas estaban desactualizados.
 - PDF Kerusso: 41 páginas, texto completo extraído y revisión visual de páginas 25-31 y 37-40.
 - Presentación Verano 2026: 11 diapositivas, revisión visual de todas las miniaturas y de las diapositivas 1, 10 y 11 en PowerPoint (Vista protegida).
-- Inspección estática del T-SQL; sin conexión a SQL Server y sin ejecución de DDL.
+- Inspección estática del T-SQL y ejecución real de `up` contra SQL Server. Se corrigió el esquema reservado `[identity]` tras una primera ejecución revertida automáticamente.
 - `git status` y revisión de estructura del repositorio.
 - `codex --version` y ayuda local; consulta de documentación oficial sobre multiagente/configuración.
 - `npm run typecheck`: aprobado.
@@ -57,8 +59,8 @@ Etapa 2, incremento I0. I0-001 está completado y verificado. I0-002 está imple
 - `npm run openapi:validate`: aprobado.
 - `npm run build`: aprobado.
 - `npm audit --omit=dev`: 0 vulnerabilidades de producción. El toolchain de desarrollo conserva 7 avisos moderados transitivos de `minimatch`; forzar la corrección propuesta rompería compatibilidad TypeScript/ESLint.
-- Migraciones: pares up/down, transacciones, checksums y contratos estáticos verificados; sintaxis/constraints no ejecutados en SQL Server real.
+- Migraciones: pares up/down, transacciones y checksums verificados; `up` e idempotencia ejecutados en SQL Server real. `npm run database:verify-foundation` aprobó seis invariantes y revirtió sus fixtures.
 
 ## Siguiente acción concreta
 
-Levantar una instancia temporal de SQL Server y ejecutar I0-002 up/down más pruebas negativas cross-tenant. Después iniciar I1-001 (cuenta, sesión, verificación y recuperación) sin esperar otra aprobación de negocio.
+Iniciar I1-001 (cuenta, sesión, verificación y recuperación). En paralelo, cuando exista una base temporal descartable, ejecutar allí los scripts `down` para cerrar por completo I0-002.

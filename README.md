@@ -30,9 +30,12 @@ Configura las variables `SQL_*` de `.env` sobre una base vacía y ejecuta:
 
 ```powershell
 npm run migrate
+npm run database:verify-foundation
 ```
 
 El runner usa pool `mssql`, bloqueo de aplicación, transacción serializable, checksum SHA-256 e historial en `infra.schema_migration`. No lo ejecutes sobre el SQL preliminar ni una base con datos sin estrategia de adopción y respaldo. Los archivos `down` son sólo para desarrollo/ensayo y se ejecutan manualmente de forma consciente.
+
+La verificación prueba restricciones multitenant y valores predeterminados dentro de una transacción que siempre se revierte.
 
 ## Verificación
 

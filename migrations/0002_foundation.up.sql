@@ -76,7 +76,7 @@ CREATE TABLE organization.club (
     CONSTRAINT CK_club_closed_at CHECK (closed_at_utc IS NULL OR status = 'CLOSED')
 );
 
-CREATE TABLE identity.account (
+CREATE TABLE [identity].account (
     account_id uniqueidentifier NOT NULL
         CONSTRAINT DF_account_id DEFAULT NEWSEQUENTIALID(),
     email_normalized varchar(320) NOT NULL,
@@ -94,7 +94,7 @@ CREATE TABLE identity.account (
     CONSTRAINT CK_account_status CHECK (status IN ('PENDING_VERIFICATION', 'ACTIVE', 'LOCKED', 'DISABLED'))
 );
 
-CREATE TABLE identity.person (
+CREATE TABLE [identity].person (
     person_id uniqueidentifier NOT NULL
         CONSTRAINT DF_person_id DEFAULT NEWSEQUENTIALID(),
     tenant_id uniqueidentifier NOT NULL,
@@ -116,10 +116,10 @@ CREATE TABLE identity.person (
 );
 
 CREATE UNIQUE INDEX UX_person_institutional_identifier
-    ON identity.person(tenant_id, institutional_identifier)
+    ON [identity].person(tenant_id, institutional_identifier)
     WHERE institutional_identifier IS NOT NULL;
 
-CREATE TABLE identity.account_person_link (
+CREATE TABLE [identity].account_person_link (
     account_person_link_id uniqueidentifier NOT NULL
         CONSTRAINT DF_account_person_link_id DEFAULT NEWSEQUENTIALID(),
     tenant_id uniqueidentifier NOT NULL,
@@ -134,9 +134,9 @@ CREATE TABLE identity.account_person_link (
     CONSTRAINT FK_account_person_link_tenant FOREIGN KEY (tenant_id)
         REFERENCES platform.tenant(tenant_id),
     CONSTRAINT FK_account_person_link_account FOREIGN KEY (account_id)
-        REFERENCES identity.account(account_id),
+        REFERENCES [identity].account(account_id),
     CONSTRAINT FK_account_person_link_person FOREIGN KEY (tenant_id, person_id)
-        REFERENCES identity.person(tenant_id, person_id),
+        REFERENCES [identity].person(tenant_id, person_id),
     CONSTRAINT UQ_account_person_link_tenant_id UNIQUE (tenant_id, account_person_link_id),
     CONSTRAINT UQ_account_person_link_account_person UNIQUE (tenant_id, account_id, person_id),
     CONSTRAINT CK_account_person_link_status CHECK (status IN ('ACTIVE', 'REVOKED')),
@@ -144,11 +144,11 @@ CREATE TABLE identity.account_person_link (
 );
 
 CREATE UNIQUE INDEX UX_account_person_link_active_account
-    ON identity.account_person_link(tenant_id, account_id)
+    ON [identity].account_person_link(tenant_id, account_id)
     WHERE status = 'ACTIVE';
 
 CREATE UNIQUE INDEX UX_account_person_link_active_person
-    ON identity.account_person_link(tenant_id, person_id)
+    ON [identity].account_person_link(tenant_id, person_id)
     WHERE status = 'ACTIVE';
 
 CREATE TABLE membership.club_membership (
@@ -169,7 +169,7 @@ CREATE TABLE membership.club_membership (
     CONSTRAINT FK_club_membership_club FOREIGN KEY (tenant_id, club_id)
         REFERENCES organization.club(tenant_id, club_id),
     CONSTRAINT FK_club_membership_person FOREIGN KEY (tenant_id, person_id)
-        REFERENCES identity.person(tenant_id, person_id),
+        REFERENCES [identity].person(tenant_id, person_id),
     CONSTRAINT UQ_club_membership_tenant_id UNIQUE (tenant_id, membership_id),
     CONSTRAINT UQ_club_membership_club_id UNIQUE (tenant_id, club_id, membership_id),
     CONSTRAINT UQ_club_membership_person UNIQUE (tenant_id, club_id, person_id),
@@ -197,7 +197,7 @@ CREATE TABLE membership.condition_event (
     CONSTRAINT FK_condition_event_membership FOREIGN KEY (tenant_id, club_id, membership_id)
         REFERENCES membership.club_membership(tenant_id, club_id, membership_id),
     CONSTRAINT FK_condition_event_actor FOREIGN KEY (actor_account_id)
-        REFERENCES identity.account(account_id),
+        REFERENCES [identity].account(account_id),
     CONSTRAINT UQ_condition_event_tenant_id UNIQUE (tenant_id, condition_event_id),
     CONSTRAINT CK_condition_event_previous CHECK (previous_condition IS NULL OR previous_condition IN ('ASPIRANT', 'COLPORTOR')),
     CONSTRAINT CK_condition_event_new CHECK (new_condition IN ('ASPIRANT', 'COLPORTOR')),
@@ -279,7 +279,7 @@ CREATE TABLE [authorization].access_assignment (
     reason nvarchar(500) NULL,
     CONSTRAINT PK_access_assignment PRIMARY KEY (access_assignment_id),
     CONSTRAINT FK_access_assignment_account FOREIGN KEY (account_id)
-        REFERENCES identity.account(account_id),
+        REFERENCES [identity].account(account_id),
     CONSTRAINT FK_access_assignment_role_scope FOREIGN KEY (role_id, scope_type)
         REFERENCES [authorization].role(role_id, scope_type),
     CONSTRAINT FK_access_assignment_tenant FOREIGN KEY (tenant_id)
@@ -289,7 +289,7 @@ CREATE TABLE [authorization].access_assignment (
     CONSTRAINT FK_access_assignment_club FOREIGN KEY (tenant_id, club_id)
         REFERENCES organization.club(tenant_id, club_id),
     CONSTRAINT FK_access_assignment_granted_by FOREIGN KEY (granted_by_account_id)
-        REFERENCES identity.account(account_id),
+        REFERENCES [identity].account(account_id),
     CONSTRAINT UQ_access_assignment_tenant_account_id UNIQUE (tenant_id, account_id, access_assignment_id),
     CONSTRAINT CK_access_assignment_scope_shape CHECK (
         (scope_type = 'PLATFORM' AND tenant_id IS NULL AND institution_id IS NULL AND club_id IS NULL)
@@ -354,7 +354,7 @@ CREATE TABLE organization.position_assignment (
     CONSTRAINT FK_position_assignment_membership FOREIGN KEY (tenant_id, club_id, membership_id)
         REFERENCES membership.club_membership(tenant_id, club_id, membership_id),
     CONSTRAINT FK_position_assignment_actor FOREIGN KEY (assigned_by_account_id)
-        REFERENCES identity.account(account_id),
+        REFERENCES [identity].account(account_id),
     CONSTRAINT UQ_position_assignment_tenant_id UNIQUE (tenant_id, position_assignment_id),
     CONSTRAINT CK_position_assignment_dates CHECK (ends_on IS NULL OR ends_on >= starts_on),
     CONSTRAINT CK_position_assignment_status CHECK (status IN ('ACTIVE', 'ENDED', 'REVOKED'))
@@ -364,7 +364,7 @@ CREATE UNIQUE INDEX UX_position_assignment_active_position
     ON organization.position_assignment(tenant_id, club_id, position_id, membership_id)
     WHERE status = 'ACTIVE';
 
-CREATE TABLE identity.action_token (
+CREATE TABLE [identity].action_token (
     action_token_id uniqueidentifier NOT NULL
         CONSTRAINT DF_action_token_id DEFAULT NEWSEQUENTIALID(),
     purpose varchar(40) NOT NULL,
@@ -384,11 +384,11 @@ CREATE TABLE identity.action_token (
     CONSTRAINT PK_action_token PRIMARY KEY (action_token_id),
     CONSTRAINT UQ_action_token_hash UNIQUE (token_hash),
     CONSTRAINT FK_action_token_account FOREIGN KEY (account_id)
-        REFERENCES identity.account(account_id),
+        REFERENCES [identity].account(account_id),
     CONSTRAINT FK_action_token_club FOREIGN KEY (tenant_id, club_id)
         REFERENCES organization.club(tenant_id, club_id),
     CONSTRAINT FK_action_token_created_by FOREIGN KEY (created_by_account_id)
-        REFERENCES identity.account(account_id),
+        REFERENCES [identity].account(account_id),
     CONSTRAINT CK_action_token_purpose CHECK (purpose IN ('EMAIL_VERIFICATION', 'PASSWORD_RESET', 'CLUB_INVITATION')),
     CONSTRAINT CK_action_token_scope CHECK (
         (purpose = 'CLUB_INVITATION' AND tenant_id IS NOT NULL AND club_id IS NOT NULL AND target_email_normalized IS NOT NULL)
@@ -404,7 +404,7 @@ CREATE TABLE identity.action_token (
 );
 
 CREATE INDEX IX_action_token_lookup
-    ON identity.action_token(purpose, expires_at_utc)
+    ON [identity].action_token(purpose, expires_at_utc)
     INCLUDE (consumed_at_utc, revoked_at_utc, account_id, tenant_id, club_id);
 
 CREATE TABLE platform.tenant_service_state_event (
@@ -421,7 +421,7 @@ CREATE TABLE platform.tenant_service_state_event (
     CONSTRAINT FK_tenant_service_state_event_tenant FOREIGN KEY (tenant_id)
         REFERENCES platform.tenant(tenant_id),
     CONSTRAINT FK_tenant_service_state_event_actor FOREIGN KEY (actor_account_id)
-        REFERENCES identity.account(account_id),
+        REFERENCES [identity].account(account_id),
     CONSTRAINT UQ_tenant_service_state_event_tenant_id UNIQUE (tenant_id, tenant_service_state_event_id),
     CONSTRAINT CK_tenant_service_state_event_previous CHECK (previous_status IS NULL OR previous_status IN ('PENDING', 'ACTIVE', 'READ_ONLY', 'SUSPENDED', 'CLOSED')),
     CONSTRAINT CK_tenant_service_state_event_new CHECK (new_status IN ('PENDING', 'ACTIVE', 'READ_ONLY', 'SUSPENDED', 'CLOSED')),
@@ -448,7 +448,7 @@ CREATE TABLE audit.audit_event (
     CONSTRAINT FK_audit_event_tenant FOREIGN KEY (tenant_id)
         REFERENCES platform.tenant(tenant_id),
     CONSTRAINT FK_audit_event_actor FOREIGN KEY (actor_account_id)
-        REFERENCES identity.account(account_id),
+        REFERENCES [identity].account(account_id),
     CONSTRAINT CK_audit_event_before_json CHECK (before_json IS NULL OR ISJSON(before_json) = 1),
     CONSTRAINT CK_audit_event_after_json CHECK (after_json IS NULL OR ISJSON(after_json) = 1)
 );
@@ -480,7 +480,7 @@ CREATE TABLE audit.idempotency_record (
     CONSTRAINT FK_idempotency_record_tenant FOREIGN KEY (tenant_id)
         REFERENCES platform.tenant(tenant_id),
     CONSTRAINT FK_idempotency_record_actor FOREIGN KEY (actor_account_id)
-        REFERENCES identity.account(account_id),
+        REFERENCES [identity].account(account_id),
     CONSTRAINT CK_idempotency_record_status CHECK (status IN ('PROCESSING', 'COMPLETED', 'FAILED')),
     CONSTRAINT CK_idempotency_record_response_status CHECK (response_status IS NULL OR response_status BETWEEN 100 AND 599),
     CONSTRAINT CK_idempotency_record_response_json CHECK (response_json IS NULL OR ISJSON(response_json) = 1),
