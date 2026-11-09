@@ -55,5 +55,8 @@ try{
     DELETE FROM [C_membership].condition_event WHERE tenant_id=@tenant; DELETE FROM [C_membership].club_membership WHERE tenant_id=@tenant; DELETE FROM [C_identity].person WHERE tenant_id=@tenant;
     DELETE FROM [C_authorization].access_assignment WHERE tenant_id=@tenant; DELETE FROM [C_authorization].role_permission WHERE role_id=@role; DELETE FROM [C_authorization].role WHERE role_id=@role;
     DELETE FROM [C_identity].account WHERE account_id IN(@admin,@outsider); DELETE FROM [C_organization].club WHERE tenant_id=@tenant; DELETE FROM [C_organization].institution WHERE tenant_id=@tenant; DELETE FROM [C_platform].tenant WHERE tenant_id=@tenant;
-  `);}finally{await pool.close();}
+  `);
+  const cleanup=await pool.request().input("tenant",ids.tenant).query<{remaining:number}>(`SELECT (SELECT COUNT(*) FROM [C_training].promotion_decision WHERE tenant_id=@tenant)+(SELECT COUNT(*) FROM [C_membership].experience_recognition WHERE tenant_id=@tenant)+(SELECT COUNT(*) FROM [C_membership].condition_event WHERE tenant_id=@tenant)+(SELECT COUNT(*) FROM [C_audit].idempotency_record WHERE tenant_id=@tenant) AS remaining;`);
+  if(cleanup.recordset[0]?.remaining!==0){process.stderr.write("Member transition verification fixtures were not cleaned\n");process.exitCode=1;}
+  }finally{await pool.close();}
 }
