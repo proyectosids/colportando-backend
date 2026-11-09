@@ -22,6 +22,7 @@
     "database:verify-invitations": "tsx scripts/verify-invitation-database.ts",
     "database:verify-training": "tsx scripts/verify-training-database.ts",
     "database:verify-member-transitions": "tsx scripts/verify-member-transitions-database.ts",
+    "database:verify-campaign-operations": "tsx scripts/verify-campaign-operations-database.ts",
     "mail:verify": "tsx scripts/verify-mail-connection.ts",
     "mail:preview": "tsx scripts/preview-auth-emails.ts"
   },

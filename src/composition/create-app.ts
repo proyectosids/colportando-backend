@@ -15,6 +15,8 @@ import { createHealthRouter } from "../modules/health/presentation/http/health-r
 import type { TrainingService } from "../modules/training/application/training-service.js";
 import type { MemberTransitionService } from "../modules/training/application/member-transition-service.js";
 import { createTrainingRouter } from "../modules/training/presentation/http/training-router.js";
+import type {CampaignOperationsService} from "../modules/operations/application/campaign-operations-service.js";
+import {createOperationsRouter} from "../modules/operations/presentation/http/operations-router.js";
 import type { AppConfig } from "../shared/infrastructure/config/env.js";
 import { AppError } from "../shared/presentation/http/errors/app-error.js";
 import { createErrorHandler } from "../shared/presentation/http/middleware/error-handler.js";
@@ -29,9 +31,10 @@ export type CreateAppDependencies = Readonly<{
   invitationService?: InvitationService;
   trainingService?: TrainingService;
   memberTransitionService?:MemberTransitionService;
+  campaignOperationsService?:CampaignOperationsService;
 }>;
 
-export function createApp({ config, logger, authService, invitationService, trainingService, memberTransitionService }: CreateAppDependencies): Express {
+export function createApp({ config, logger, authService, invitationService, trainingService, memberTransitionService,campaignOperationsService }: CreateAppDependencies): Express {
   const app = express();
   const openApiDocument = createOpenApiDocument();
   const getHealthStatus = new GetHealthStatus(new SystemClock());
@@ -79,7 +82,8 @@ export function createApp({ config, logger, authService, invitationService, trai
     }),
     createHealthRouter(getHealthStatus),
     ...(authService === undefined ? [] : [createAuthRouter(authService, invitationService)]),
-    ...(authService === undefined || trainingService === undefined ? [] : [createTrainingRouter(authService, trainingService,memberTransitionService)])
+    ...(authService === undefined || trainingService === undefined ? [] : [createTrainingRouter(authService, trainingService,memberTransitionService)]),
+    ...(authService===undefined||campaignOperationsService===undefined?[]:[createOperationsRouter(authService,campaignOperationsService)])
   );
 
   if (config.swaggerEnabled) {

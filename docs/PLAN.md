@@ -14,7 +14,7 @@ Los estados permitidos son `pendiente`, `en curso`, `bloqueada` y `completada`. 
 | I1-002 | SPEC-002, SPEC-006 | Invitación y alta pública como aspirante | I1-001 | completada | Backend | Migración 0004 aplicada e idempotente; autorización, correo único, aceptación `PENDING` + `ASPIRANT`, cero acceso elevado, reintentos y limpieza verificados en `IDS-APP` |
 | I2-001 | SPEC-003 | Programas, sesiones, inscripción y asistencias | I1-002 | completada | Backend/datos | Migración 0005 aplicada e idempotente; programas versionados, sesiones, cierre, inscripción aspirante, asistencia, avance propio, alcance, reintentos y no promoción verificados en `IDS-APP` |
 | I2-002 | SPEC-003 | Promoción y reconocimiento por experiencia | I2-001 | completada | Backend/seguridad | Migración 0006 aplicada e idempotente; criterios por versión sin umbral global, autorización, evidencia, snapshot, operaciones separadas, reintentos, historial y limpieza verificados en `IDS-APP` |
-| I3-001 | SPEC-004 | Campañas, grupos, asociados, campos y apelaciones | I1-002 | pendiente | Backend | Flujo funcional y pruebas de alcance club/grupo |
+| I3-001 | SPEC-004 | Campañas, grupos, asociados, campos y apelaciones | I1-002 | completado | Backend | Flujo funcional y pruebas de alcance club/grupo aprobados |
 | I4-001 | SPEC-004 | Catálogo, adquisiciones e inventario aprobado | I3-001, decisión inventario | pendiente | Backend/datos | Snapshots de precio/fuente; alcance de stock validado |
 | I5-001 | SPEC-004 | Ventas, pagos, cancelaciones y reembolsos | I4-001 | pendiente | Backend | Idempotencia, importes históricos, reversas y pruebas |
 | I6-001 | SPEC-005 | Créditos y depósitos | I3-001 | pendiente | Backend/finanzas | Autorización, vencimientos, correcciones auditadas y pruebas |

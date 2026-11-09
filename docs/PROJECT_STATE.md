@@ -4,7 +4,7 @@ Actualizado: 2026-11-09 (America/Mexico_City)
 
 ## Fase actual
 
-Etapa 2. I0-001, I1-001, I1-002, I2-001 e I2-002 están completados y verificados. El siguiente incremento es I3-001 (campañas, grupos, asociados, campos y apelaciones).
+Etapa 2. I0-001, I1-001, I1-002, I2-001, I2-002 e I3-001 están completados y verificados. El siguiente incremento es I4-001 (catálogo, adquisiciones e inventario aprobado).
 
 ## Completado y verificado
 
@@ -25,8 +25,8 @@ Etapa 2. I0-001, I1-001, I1-002, I2-001 e I2-002 están completados y verificado
 - Verificación de correo y recuperación mediante tokens opacos aleatorios guardados como HMAC-SHA-256, expiración, propósito, revocación previa y consumo único con efecto atómico.
 - Reset de contraseña revoca sesiones, familias y refresh tokens; logout por refresh token es idempotente y revoca la familia completa.
 - Migración `0003_auth_sessions` aplicada en SQL Server; flujo real completo aprobado con fixtures aleatorios eliminados al finalizar.
-- La instalación activa está en la base compartida `IDS-APP`. Los ocho esquemas físicos usan el prefijo `C_`: `C_infra`, `C_platform`, `C_organization`, `C_identity`, `C_membership`, `C_authorization`, `C_audit` y `C_training`.
-- Las migraciones `0001`–`0006` se aplicaron allí de forma transaccional e idempotente: 30 tablas de Colportando, separadas de las 206 tablas preexistentes. El historial vive en `C_infra.schema_migration`.
+- La instalación activa está en la base compartida `IDS-APP`. Los nueve esquemas físicos usan el prefijo `C_`: `C_infra`, `C_platform`, `C_organization`, `C_identity`, `C_membership`, `C_authorization`, `C_audit`, `C_training` y `C_operations`.
+- Las migraciones `0001`–`0007` se aplicaron allí de forma transaccional e idempotente: 39 tablas de Colportando, separadas de las tablas preexistentes. El historial vive en `C_infra.schema_migration`.
 - API `/api/v1/auth`: login, refresh, logout, solicitud/confirmación de verificación, solicitud/confirmación de reset y perfil autenticado `/me`; OpenAPI alineado.
 - I1-002 implementa invitaciones autorizadas por `membership.invitation.create`, alcance resuelto en servidor, correo específico del club, consulta pública con correo enmascarado y aceptación transaccional.
 - El alta reutiliza la Persona vinculada dentro del tenant o crea cuenta/Persona/vínculo; la membresía sólo puede resultar `PENDING` + `ASPIRANT`. El payload público rechaza condición, rol y cargo.
@@ -41,6 +41,10 @@ Etapa 2. I0-001, I1-001, I1-002, I2-001 e I2-002 están completados y verificado
 - El reconocimiento por experiencia es una operación y tabla diferentes, exige resumen, motivo y evidencia, y no crea inscripciones ni asistencias. Sólo una aprobación explícita cambia la condición mediante `PRIOR_EXPERIENCE_RECOGNITION`.
 - Promoción y reconocimiento son transaccionales, idempotentes y auditados; vinculan actor y asignación de acceso. El historial de condición tiene lectura protegida por `membership.transition-history.read`.
 - Migración `0006_member_transitions` aplicada e idempotente en `IDS-APP`. El verificador real rechazó evidencia insuficiente y actores no autorizados, aprobó ambos caminos con reintentos, confirmó eventos distintos, snapshot versionado, cero asistencias ficticias, historial auditable y limpieza de fixtures.
+- I3-001 incorpora campañas por club, participación por membresía, grupos, asignaciones históricas, asociado operativo por grupo, campos y asignación de campos. El asociado no se convierte en rol global ni altera la condición de la membresía.
+- Solicitudes de cambio y apelaciones son procesos separados y auditables. Una aprobación cierra la asignación vigente y crea una nueva; no se impuso un límite de apelaciones ni reglas financieras no aprobadas.
+- La API `/api/v1/operations` cubre administración de campañas, grupos, participaciones, asociados y campos; cambio/apelación; y lectura de grupo protegida por permiso administrativo o asignación activa del asociado.
+- Migración `0007_campaign_operations` aplicada e idempotente en `IDS-APP`. El verificador real aprobó reintentos, aislamiento de grupo, rechazo de terceros, campo asignado, apelación aprobada, historial de dos asignaciones y exactamente una asignación activa.
 
 ## Decisiones aprobadas
 
@@ -60,7 +64,7 @@ Etapa 2. I0-001, I1-001, I1-002, I2-001 e I2-002 están completados y verificado
 - Los scripts `down` aún no se han ejecutado: deben probarse en una base temporal aislada, no sobre la base configurada que acaba de recibir el esquema.
 - Gmail quedó integrado mediante Nodemailer con `AUTH_PASS_APP`, remitente `Colportando App`, plantillas HTML/texto específicas para verificación y reset, y respuesta neutral aun si el proveedor falla. La conexión SMTP fue verificada sin enviar correo.
 - `AUTH_ACTION_BASE_URL` permanece en localhost para desarrollo; falta definir el dominio HTTPS o deep link Flutter definitivo antes de enviar enlaces a usuarios reales.
-- Módulos operativos posteriores siguen pendientes.
+- Catálogo, adquisiciones, inventario, ventas y finanzas siguen pendientes de sus incrementos y reglas aprobadas.
 - El manual Kerusso describe organización y funciones; no prueba por sí solo todas las reglas del programa institucional.
 - La presentación de bonificación aporta ejemplos/reglas de Verano 2026 que deben validarse con Finanzas antes de convertirse en fórmulas del sistema.
 - No hay proyectos Flutter o React presentes en la raíz inspeccionada; no se pudieron contrastar contratos de clientes.
@@ -76,8 +80,8 @@ Etapa 2. I0-001, I1-001, I1-002, I2-001 e I2-002 están completados y verificado
 - `codex --version` y ayuda local; consulta de documentación oficial sobre multiagente/configuración.
 - `npm run typecheck`: aprobado.
 - `npm run lint`: aprobado.
-- `npm test`: 8 archivos, 33 pruebas aprobadas; incluye contratos de esquema `C_*`, criterios explícitos, separación promoción/reconocimiento e inexistencia de umbral global.
-- `npm run test:integration`: 3 archivos, 17 pruebas HTTP aprobadas; incluye decisión administrativa explícita, validación estricta y separación del reconocimiento.
+- `npm test`: 9 archivos, 37 pruebas aprobadas; incluye contratos de esquema `C_*`, criterios explícitos, separación promoción/reconocimiento y reglas operativas de campaña.
+- `npm run test:integration`: 4 archivos, 20 pruebas HTTP aprobadas; incluye decisión administrativa explícita, validación estricta, separación del reconocimiento y contratos de operaciones.
 - `npm run openapi:validate`: aprobado.
 - `npm run build`: aprobado.
 - `npm audit --omit=dev`: 0 vulnerabilidades de producción. El toolchain de desarrollo conserva 7 avisos moderados transitivos de `minimatch`; forzar la corrección propuesta rompería compatibilidad TypeScript/ESLint.
@@ -86,8 +90,9 @@ Etapa 2. I0-001, I1-001, I1-002, I2-001 e I2-002 están completados y verificado
 - `npm run database:verify-invitations`: creación y aceptación idempotentes, correo único, membresía aspirante y cero elevación de acceso aprobados en SQL Server real; fixtures eliminados.
 - `npm run database:verify-training`: programa/versionado, sesión/cierre, inscripción, asistencia, avance propio, permisos, reintentos y permanencia como aspirante aprobados en SQL Server real; fixtures eliminados.
 - `npm run database:verify-member-transitions`: criterios versionados sin umbral global, promoción, reconocimiento, autorización, evidencia, idempotencia, eventos separados, historial, ausencia de asistencias ficticias y limpieza aprobados en SQL Server real.
+- `npm run database:verify-campaign-operations`: campañas, participaciones, grupos, asociado, campos, alcance de lectura, cambio por apelación, idempotencia e historial aprobados en SQL Server real.
 - `npm run mail:verify`: autenticación SMTP Gmail aprobada sin envío. Plantillas de verificación y recuperación cubiertas por pruebas y vistas HTML locales.
 
 ## Siguiente acción concreta
 
-Iniciar I3-001: revisar SPEC-004 y precisar el contrato de campañas, grupos, asociados, campos y apelaciones antes de implementar dominio, migración, HTTP/OpenAPI y controles de alcance club/grupo.
+Iniciar I4-001: precisar con SPEC-004 el catálogo, adquisiciones e inventario aprobado, conservando snapshots históricos y sin administrar inventario interno de GEMA.

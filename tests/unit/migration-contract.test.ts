@@ -36,6 +36,7 @@ describe("foundation migration contract", () => {
     expect(sql).toContain("criteria_snapshot_json");
     expect(sql).not.toMatch(/DEFAULT\s+80|DEFAULT\s+0\.8/i);
   });
+  it("keeps campaign operations tenant-safe and excludes finance/inventory",async()=>{const sql=await readFile(path.join(projectRoot,"migrations/0007_campaign_operations.up.sql"),"utf8");expect(sql).toContain("[C_operations].campaign");expect(sql).toContain("[C_operations].group_assignment");expect(sql).toContain("[C_operations].group_change_appeal");expect(sql).toContain("FOREIGN KEY(tenant_id,campaign_id");expect(sql).not.toMatch(/commission|price|stock|inventory/i);});
 
   it("encodes tenant-safe membership and audited promotion constraints", async () => {
     const sql = await readFile(path.join(projectRoot, "migrations/0002_foundation.up.sql"), "utf8");
