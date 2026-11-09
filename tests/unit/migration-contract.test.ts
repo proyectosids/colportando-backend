@@ -6,6 +6,17 @@ import { describe, expect, it } from "vitest";
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 describe("foundation migration contract", () => {
+  it("keeps every physical schema under the Colportando C_ namespace", async () => {
+    const infrastructure = await readFile(path.join(projectRoot, "migrations/0001_infrastructure.up.sql"), "utf8");
+    const foundation = await readFile(path.join(projectRoot, "migrations/0002_foundation.up.sql"), "utf8");
+    const sessions = await readFile(path.join(projectRoot, "migrations/0003_auth_sessions.up.sql"), "utf8");
+
+    for (const schema of ["infra", "platform", "organization", "identity", "membership", "authorization", "audit"]) {
+      expect(infrastructure).toContain(`N'C_${schema}'`);
+    }
+    expect(`${foundation}\n${sessions}`).not.toMatch(/\[(identity|authorization)\]|\b(platform|organization|membership|audit)\./);
+  });
+
   it("encodes tenant-safe membership and audited promotion constraints", async () => {
     const sql = await readFile(path.join(projectRoot, "migrations/0002_foundation.up.sql"), "utf8");
 
@@ -21,8 +32,8 @@ describe("foundation migration contract", () => {
   it("drops condition events before their access assignments", async () => {
     const sql = await readFile(path.join(projectRoot, "migrations/0002_foundation.down.sql"), "utf8");
 
-    expect(sql.indexOf("membership.condition_event")).toBeLessThan(
-      sql.indexOf("[authorization].access_assignment")
+    expect(sql.indexOf("[C_membership].condition_event")).toBeLessThan(
+      sql.indexOf("[C_authorization].access_assignment")
     );
   });
 });

@@ -25,6 +25,8 @@ Etapa 2. I0-001 e I1-001 están completados y verificados. I0-002 ya fue aplicad
 - Verificación de correo y recuperación mediante tokens opacos aleatorios guardados como HMAC-SHA-256, expiración, propósito, revocación previa y consumo único con efecto atómico.
 - Reset de contraseña revoca sesiones, familias y refresh tokens; logout por refresh token es idempotente y revoca la familia completa.
 - Migración `0003_auth_sessions` aplicada en SQL Server; flujo real completo aprobado con fixtures aleatorios eliminados al finalizar.
+- La instalación activa está en la base compartida `IDS-APP`. Los siete esquemas físicos usan el prefijo `C_`: `C_infra`, `C_platform`, `C_organization`, `C_identity`, `C_membership`, `C_authorization` y `C_audit`.
+- Las migraciones `0001`–`0003` se aplicaron allí de forma transaccional e idempotente: 22 tablas de Colportando, separadas de las 206 tablas preexistentes. El historial vive en `C_infra.schema_migration`.
 - API `/api/v1/auth`: login, refresh, logout, solicitud/confirmación de verificación, solicitud/confirmación de reset y perfil autenticado `/me`; OpenAPI alineado.
 
 ## Decisiones aprobadas
@@ -56,12 +58,12 @@ Etapa 2. I0-001 e I1-001 están completados y verificados. I0-002 ya fue aplicad
 - Extracción estructural completa de los ocho DOCX. No contenían comentarios ni cambios controlados; algunos metadatos de páginas estaban desactualizados.
 - PDF Kerusso: 41 páginas, texto completo extraído y revisión visual de páginas 25-31 y 37-40.
 - Presentación Verano 2026: 11 diapositivas, revisión visual de todas las miniaturas y de las diapositivas 1, 10 y 11 en PowerPoint (Vista protegida).
-- Inspección estática del T-SQL y ejecución real de `up` contra SQL Server. Se corrigió el esquema reservado `[identity]` tras una primera ejecución revertida automáticamente.
+- Inspección estática del T-SQL y ejecución real de `up` contra SQL Server. Los esquemas físicos ahora usan el prefijo `C_` para convivir dentro de una base compartida sin colisiones.
 - `git status` y revisión de estructura del repositorio.
 - `codex --version` y ayuda local; consulta de documentación oficial sobre multiagente/configuración.
 - `npm run typecheck`: aprobado.
 - `npm run lint`: aprobado.
-- `npm test`: 4 archivos, 12 pruebas aprobadas.
+- `npm test`: 5 archivos, 17 pruebas aprobadas; incluye contrato que prohíbe esquemas físicos sin prefijo `C_`.
 - `npm run test:integration`: 2 archivos, 10 pruebas HTTP aprobadas (requirió permitir puerto local efímero).
 - `npm run openapi:validate`: aprobado.
 - `npm run build`: aprobado.

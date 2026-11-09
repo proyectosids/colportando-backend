@@ -9,6 +9,7 @@ Backend SaaS independiente para gestionar instituciones, clubes de colportores y
 - Separar persona, cuenta, membresía, condición del integrante, rol de acceso y cargo organizacional.
 - Toda membresía pública de participante inicia como aspirante. Reconocimiento por experiencia es una operación administrativa distinta y auditada.
 - Usar consultas parametrizadas, transacciones en operaciones atómicas, claves idempotentes en escrituras móviles sensibles y FKs compuestas para impedir referencias entre tenants.
+- Todos los objetos SQL de Colportando deben vivir en esquemas físicos con prefijo `C_`; la base `IDS-APP` es compartida y no se deben crear objetos en `dbo` ni en esquemas sin ese prefijo.
 - Fechas persistidas en UTC con `datetime2`; importes con `decimal`, moneda y política de redondeo explícitas. No registrar secretos ni datos sensibles innecesarios.
 - Un endpoint no está terminado sin validación, autorización, pruebas y OpenAPI alineado.
 - No implementar reglas financieras, criterios de promoción, precios, planes o límites que sigan pendientes de validación.

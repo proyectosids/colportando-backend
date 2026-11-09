@@ -5,13 +5,14 @@ Estado: `up` de I0-002 y la migración `0003_auth_sessions` aplicados y verifica
 ## Convención
 
 - Archivos `NNNN_nombre.up.sql` y `NNNN_nombre.down.sql` forman una unidad versionada.
-- El runner en `src/shared/infrastructure/database/migrate.ts` calcula SHA-256 del archivo `up`, toma un bloqueo, ejecuta cada migración completa en transacción serializable y registra versión, nombre, checksum y duración en `infra.schema_migration`.
+- El runner en `src/shared/infrastructure/database/migrate.ts` calcula SHA-256 del archivo `up`, toma un bloqueo, ejecuta cada migración completa en transacción serializable y registra versión, nombre, checksum y duración en `[C_infra].schema_migration`.
 - Una versión aplicada con checksum diferente debe detener el proceso; nunca se reescribe su historial.
 - `down` sólo se usa en entornos de desarrollo/ensayo y exige confirmar que no destruye datos valiosos.
 - La adopción de una base existente tendrá migraciones de inventario/mapeo propias; estos archivos no se aplican sobre el borrador `.dql`.
 
 ## Decisiones físicas
 
+- La base es compartida: todos los esquemas de Colportando llevan prefijo `C_` y ningún objeto se crea en `dbo`.
 - IDs UUID con `NEWSEQUENTIALID()` para reducir fragmentación y evitar exponer secuencias.
 - Instantes en UTC mediante `datetime2(3)` y `SYSUTCDATETIME()`; fechas civiles usan `date`.
 - Toda entidad tenant-owned ofrece una clave única `(tenant_id, id)` para FKs compuestas.

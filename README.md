@@ -51,7 +51,7 @@ npm run database:verify-foundation
 npm run database:verify-auth
 ```
 
-El runner usa pool `mssql`, bloqueo de aplicación, transacción serializable, checksum SHA-256 e historial en `infra.schema_migration`. No lo ejecutes sobre el SQL preliminar ni una base con datos sin estrategia de adopción y respaldo. Los archivos `down` son sólo para desarrollo/ensayo y se ejecutan manualmente de forma consciente.
+El runner usa pool `mssql`, bloqueo de aplicación, transacción serializable, checksum SHA-256 e historial en `[C_infra].schema_migration`. Todos los objetos de Colportando viven en esquemas con prefijo `C_` para poder compartir la base sin mezclarse con otras aplicaciones. Los archivos `down` son sólo para desarrollo/ensayo y se ejecutan manualmente de forma consciente.
 
 La verificación prueba restricciones multitenant y valores predeterminados dentro de una transacción que siempre se revierte.
 

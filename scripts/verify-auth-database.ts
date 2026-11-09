@@ -39,7 +39,7 @@ async function main(): Promise<void> {
   try {
     const initialHash = await passwords.hash("Initial-password-123!");
     await pool.request().input("accountId", accountId).input("email", email).input("passwordHash", initialHash).query(`
-      INSERT INTO [identity].account (account_id,email_normalized,password_hash,status)
+      INSERT INTO [C_identity].account (account_id,email_normalized,password_hash,status)
       VALUES (@accountId,@email,@passwordHash,'PENDING_VERIFICATION');
     `);
 
@@ -74,11 +74,11 @@ async function main(): Promise<void> {
   } finally {
     try {
       await pool.request().input("accountId", accountId).query(`
-        DELETE FROM [identity].action_token WHERE account_id=@accountId;
-        DELETE t FROM [identity].refresh_token t JOIN [identity].refresh_token_family f ON f.family_id=t.family_id WHERE f.account_id=@accountId;
-        DELETE FROM [identity].refresh_token_family WHERE account_id=@accountId;
-        DELETE FROM [identity].auth_session WHERE account_id=@accountId;
-        DELETE FROM [identity].account WHERE account_id=@accountId;
+        DELETE FROM [C_identity].action_token WHERE account_id=@accountId;
+        DELETE t FROM [C_identity].refresh_token t JOIN [C_identity].refresh_token_family f ON f.family_id=t.family_id WHERE f.account_id=@accountId;
+        DELETE FROM [C_identity].refresh_token_family WHERE account_id=@accountId;
+        DELETE FROM [C_identity].auth_session WHERE account_id=@accountId;
+        DELETE FROM [C_identity].account WHERE account_id=@accountId;
       `);
     } finally {
       await pool.close();

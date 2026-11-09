@@ -1,15 +1,15 @@
 SET XACT_ABORT ON;
 BEGIN TRANSACTION;
 
-IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'infra') EXEC(N'CREATE SCHEMA infra');
-IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'platform') EXEC(N'CREATE SCHEMA platform');
-IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'organization') EXEC(N'CREATE SCHEMA organization');
-IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'identity') EXEC(N'CREATE SCHEMA [identity]');
-IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'membership') EXEC(N'CREATE SCHEMA membership');
-IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'authorization') EXEC(N'CREATE SCHEMA [authorization]');
-IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'audit') EXEC(N'CREATE SCHEMA audit');
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'C_infra') EXEC(N'CREATE SCHEMA [C_infra]');
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'C_platform') EXEC(N'CREATE SCHEMA [C_platform]');
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'C_organization') EXEC(N'CREATE SCHEMA [C_organization]');
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'C_identity') EXEC(N'CREATE SCHEMA [C_identity]');
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'C_membership') EXEC(N'CREATE SCHEMA [C_membership]');
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'C_authorization') EXEC(N'CREATE SCHEMA [C_authorization]');
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'C_audit') EXEC(N'CREATE SCHEMA [C_audit]');
 
-CREATE TABLE infra.schema_migration (
+CREATE TABLE [C_infra].schema_migration (
     version varchar(40) NOT NULL,
     name nvarchar(200) NOT NULL,
     checksum char(64) NOT NULL,

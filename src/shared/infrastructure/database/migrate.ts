@@ -15,7 +15,7 @@ const migrationDirectory = path.resolve(currentDirectory, "../../../../migration
 
 async function migrationTableExists(pool: sql.ConnectionPool): Promise<boolean> {
   const result = await pool.request().query<{ exists_flag: number }>(`
-    SELECT CASE WHEN OBJECT_ID(N'infra.schema_migration', N'U') IS NULL THEN 0 ELSE 1 END AS exists_flag;
+    SELECT CASE WHEN OBJECT_ID(N'[C_infra].schema_migration', N'U') IS NULL THEN 0 ELSE 1 END AS exists_flag;
   `);
   return result.recordset[0]?.exists_flag === 1;
 }
@@ -26,7 +26,7 @@ async function readAppliedMigrations(pool: sql.ConnectionPool): Promise<Map<stri
   }
 
   const result = await pool.request().query<AppliedMigration>(`
-    SELECT version, checksum FROM infra.schema_migration ORDER BY version;
+    SELECT version, checksum FROM [C_infra].schema_migration ORDER BY version;
   `);
   return new Map(result.recordset.map((migration) => [migration.version, migration]));
 }
@@ -61,7 +61,7 @@ async function applyMigration(pool: sql.ConnectionPool, migration: Migration): P
       .input("checksum", sql.Char(64), migration.checksum)
       .input("executionMs", sql.Int, executionMs)
       .query(`
-        INSERT INTO infra.schema_migration(version, name, checksum, execution_ms)
+        INSERT INTO [C_infra].schema_migration(version, name, checksum, execution_ms)
         VALUES (@version, @name, @checksum, @executionMs);
       `);
     await transaction.commit();
