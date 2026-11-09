@@ -4,6 +4,11 @@ const booleanFromString = z
   .enum(["true", "false"])
   .transform((value) => value === "true");
 
+const optionalSecret = z.preprocess(
+  (value) => typeof value === "string" && value.trim() === "" ? undefined : value,
+  z.string().min(1).optional()
+);
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().min(1).max(65_535).default(3_000),
@@ -19,7 +24,13 @@ const envSchema = z.object({
   AUTH_REFRESH_TTL_SECONDS: z.coerce.number().int().min(300).default(2_592_000),
   AUTH_SESSION_TTL_SECONDS: z.coerce.number().int().min(300).default(7_776_000),
   AUTH_ACTION_TOKEN_TTL_SECONDS: z.coerce.number().int().min(300).max(86_400).default(3_600),
-  AUTH_PASSWORD_MIN_LENGTH: z.coerce.number().int().min(8).max(128).default(12)
+  AUTH_PASSWORD_MIN_LENGTH: z.coerce.number().int().min(8).max(128).default(12),
+  AUTH_ACTION_BASE_URL: z.url().default("http://localhost:5173/auth"),
+  MAIL_ADAPTER: z.enum(["disabled", "gmail"]).default("disabled"),
+  MAIL_FROM_NAME: z.string().trim().min(1).max(120).default("Colportando App"),
+  AUTH_EMAIL: z.preprocess((value) => value === "" ? undefined : value, z.email().optional()),
+  AUTH_PASS: optionalSecret,
+  AUTH_PASS_APP: optionalSecret
 });
 
 export type AppConfig = {
@@ -40,6 +51,13 @@ export type AppConfig = {
     actionTokenTtlSeconds: number;
     passwordMinLength: number;
   }>;
+  mail: Readonly<{
+    adapter: "disabled" | "gmail";
+    fromName: string;
+    email?: string;
+    password?: string;
+    actionBaseUrl: string;
+  }>;
 };
 
 export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -59,6 +77,13 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
   if (parsed.data.NODE_ENV === "production" && (parsed.data.JWT_ACCESS_SECRET.startsWith("development-only-") || parsed.data.ACTION_TOKEN_PEPPER.startsWith("development-only-"))) {
     throw new Error("Invalid application configuration: production authentication secrets must be configured");
   }
+  if (parsed.data.NODE_ENV === "production" && parsed.data.AUTH_ACTION_BASE_URL.startsWith("http://")) {
+    throw new Error("Invalid application configuration: AUTH_ACTION_BASE_URL must use HTTPS or an application scheme in production");
+  }
+  const mailPassword = parsed.data.AUTH_PASS_APP ?? parsed.data.AUTH_PASS;
+  if (parsed.data.MAIL_ADAPTER === "gmail" && (parsed.data.AUTH_EMAIL === undefined || mailPassword === undefined)) {
+    throw new Error("Invalid application configuration: Gmail requires AUTH_EMAIL and AUTH_PASS_APP (or AUTH_PASS)");
+  }
 
   return {
     nodeEnv: parsed.data.NODE_ENV,
@@ -77,6 +102,13 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
       sessionTtlSeconds: parsed.data.AUTH_SESSION_TTL_SECONDS,
       actionTokenTtlSeconds: parsed.data.AUTH_ACTION_TOKEN_TTL_SECONDS,
       passwordMinLength: parsed.data.AUTH_PASSWORD_MIN_LENGTH
+    },
+    mail: {
+      adapter: parsed.data.MAIL_ADAPTER,
+      fromName: parsed.data.MAIL_FROM_NAME,
+      ...(parsed.data.AUTH_EMAIL === undefined ? {} : { email: parsed.data.AUTH_EMAIL }),
+      ...(mailPassword === undefined ? {} : { password: mailPassword }),
+      actionBaseUrl: parsed.data.AUTH_ACTION_BASE_URL
     }
   };
 }

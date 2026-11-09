@@ -32,7 +32,8 @@ function dependencies() {
   };
   const config: AppConfig = {
     nodeEnv: "test", port: 3000, logLevel: "silent", trustProxy: false, corsAllowedOrigins: ["https://app.example"], swaggerEnabled: true,
-    auth: { jwtIssuer: "test", jwtAudience: "test", jwtAccessSecret: "test-access-secret-at-least-32-characters", accessTtlSeconds: 900, tokenPepper: "test-token-pepper-at-least-32-characters", refreshTtlSeconds: 2_592_000, sessionTtlSeconds: 7_776_000, actionTokenTtlSeconds: 3_600, passwordMinLength: 12 }
+    auth: { jwtIssuer: "test", jwtAudience: "test", jwtAccessSecret: "test-access-secret-at-least-32-characters", accessTtlSeconds: 900, tokenPepper: "test-token-pepper-at-least-32-characters", refreshTtlSeconds: 2_592_000, sessionTtlSeconds: 7_776_000, actionTokenTtlSeconds: 3_600, passwordMinLength: 12 },
+    mail: { adapter: "disabled", fromName: "Colportando App", actionBaseUrl: "https://app.example/auth" }
   };
   const authService = new AuthService(store, passwords, tokens, { deliver: vi.fn().mockResolvedValue(undefined) }, config.auth, () => new Date("2026-11-08T20:00:00.000Z"));
   return { app: createApp({ config, logger: pino({ level: "silent" }), authService }), store };

@@ -30,7 +30,13 @@ describe("loadConfig", () => {
     expect(loadConfig({
       NODE_ENV: "production",
       JWT_ACCESS_SECRET: "production-access-secret-at-least-32-characters",
-      ACTION_TOKEN_PEPPER: "production-token-pepper-at-least-32-characters"
+      ACTION_TOKEN_PEPPER: "production-token-pepper-at-least-32-characters",
+      AUTH_ACTION_BASE_URL: "https://app.example/auth"
     }).swaggerEnabled).toBe(false);
+  });
+
+  it("prefers the Gmail application password", () => {
+    const config = loadConfig({ MAIL_ADAPTER: "gmail", AUTH_EMAIL: "mailer@example.com", AUTH_PASS: "account-password", AUTH_PASS_APP: "application-password" });
+    expect(config.mail).toMatchObject({ adapter: "gmail", email: "mailer@example.com", password: "application-password", fromName: "Colportando App" });
   });
 });

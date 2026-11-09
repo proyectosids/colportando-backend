@@ -39,6 +39,11 @@ function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
       actionTokenTtlSeconds: 3_600,
       passwordMinLength: 12
     },
+    mail: {
+      adapter: "disabled",
+      fromName: "Colportando App",
+      actionBaseUrl: "https://app.example/auth"
+    },
     ...overrides
   };
 }

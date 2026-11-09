@@ -28,7 +28,18 @@ Con `PORT=3000`:
 
 I1-001 expone bajo `/api/v1/auth`: login, refresh rotativo, logout, verificación de correo, recuperación de contraseña y `/me`. Los access tokens son JWT cortos y los refresh/action tokens sólo se guardan como HMAC. La reutilización de un refresh token revoca su familia y sesión.
 
-Los secretos y TTL se configuran con `JWT_*`, `ACTION_TOKEN_PEPPER` y `AUTH_*`; en producción no se aceptan secretos de desarrollo. El proveedor de correo aún no está seleccionado: el puerto está listo, pero el adaptador actual no envía ni registra tokens.
+Los secretos y TTL se configuran con `JWT_*`, `ACTION_TOKEN_PEPPER` y `AUTH_*`; en producción no se aceptan secretos de desarrollo.
+
+### Correo de autenticación
+
+El adaptador Gmail envía correo HTML y texto alternativo con identidad `Colportando App <AUTH_EMAIL>`. Usa `AUTH_PASS_APP` con prioridad sobre `AUTH_PASS`; Google requiere una contraseña de aplicación cuando la cuenta tiene verificación en dos pasos. `AUTH_ACTION_BASE_URL` define el destino fijo de los botones y evita aceptar redirecciones proporcionadas por el cliente.
+
+```powershell
+npm run mail:verify   # valida SMTP, no envía correo
+npm run mail:preview  # genera HTML local en tmp/email-previews
+```
+
+En desarrollo la URL de acciones puede apuntar a localhost. Antes de producción debe cambiarse por HTTPS o por el esquema de enlace profundo aprobado para Flutter.
 
 ## Migraciones
 

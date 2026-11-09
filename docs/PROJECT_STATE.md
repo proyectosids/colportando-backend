@@ -43,7 +43,8 @@ Etapa 2. I0-001 e I1-001 están completados y verificados. I0-002 ya fue aplicad
 ## Trabajo parcial y limitaciones
 
 - Los scripts `down` aún no se han ejecutado: deben probarse en una base temporal aislada, no sobre la base configurada que acaba de recibir el esquema.
-- El proveedor de correo sigue sin definirse. El puerto de entrega está implementado y probado; el adaptador activo sólo advierte sin registrar token, correo ni secretos, por lo que los enlaces no se envían todavía a usuarios reales.
+- Gmail quedó integrado mediante Nodemailer con `AUTH_PASS_APP`, remitente `Colportando App`, plantillas HTML/texto específicas para verificación y reset, y respuesta neutral aun si el proveedor falla. La conexión SMTP fue verificada sin enviar correo.
+- `AUTH_ACTION_BASE_URL` permanece en localhost para desarrollo; falta definir el dominio HTTPS o deep link Flutter definitivo antes de enviar enlaces a usuarios reales.
 - La creación/vinculación pública de cuenta, Persona y membresía pertenece a I1-002; capacitación y módulos operativos siguen pendientes.
 - El manual Kerusso describe organización y funciones; no prueba por sí solo todas las reglas del programa institucional.
 - La presentación de bonificación aporta ejemplos/reglas de Verano 2026 que deben validarse con Finanzas antes de convertirse en fórmulas del sistema.
@@ -67,7 +68,8 @@ Etapa 2. I0-001 e I1-001 están completados y verificados. I0-002 ya fue aplicad
 - `npm audit --omit=dev`: 0 vulnerabilidades de producción. El toolchain de desarrollo conserva 7 avisos moderados transitivos de `minimatch`; forzar la corrección propuesta rompería compatibilidad TypeScript/ESLint.
 - Migraciones: pares up/down, transacciones y checksums verificados; `up` e idempotencia ejecutados en SQL Server real. `npm run database:verify-foundation` aprobó seis invariantes y revirtió sus fixtures.
 - `npm run database:verify-auth`: verificación de correo, login, rotación, rechazo de reutilización, invalidación de access token, reset, nuevo login y logout aprobados en SQL Server real.
+- `npm run mail:verify`: autenticación SMTP Gmail aprobada sin envío. Plantillas de verificación y recuperación cubiertas por pruebas y vistas HTML locales.
 
 ## Siguiente acción concreta
 
-Iniciar I1-002: invitación y alta pública que crea/vincula cuenta, Persona y membresía siempre como `ASPIRANT`, con transacción e idempotencia. Elegir y configurar un proveedor de correo antes de pruebas con usuarios reales.
+Iniciar I1-002: invitación y alta pública que crea/vincula cuenta, Persona y membresía siempre como `ASPIRANT`, con transacción e idempotencia. Definir el dominio HTTPS o deep link Flutter definitivo antes de pruebas de correo con usuarios reales.

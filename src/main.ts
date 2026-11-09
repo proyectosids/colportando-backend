@@ -2,8 +2,10 @@ import "dotenv/config";
 
 import { createApp } from "./composition/create-app.js";
 import { AuthService } from "./modules/auth/application/auth-service.js";
+import type { ActionTokenDelivery } from "./modules/auth/application/ports/auth-crypto.js";
 import { ArgonPasswordHasher } from "./modules/auth/infrastructure/argon-password-hasher.js";
 import { DisabledActionTokenDelivery } from "./modules/auth/infrastructure/disabled-action-token-delivery.js";
+import { GmailActionTokenDelivery } from "./modules/auth/infrastructure/gmail-action-token-delivery.js";
 import { JoseAuthTokenCodec } from "./modules/auth/infrastructure/jose-auth-token-codec.js";
 import { MssqlAuthStore } from "./modules/auth/infrastructure/mssql-auth-store.js";
 import { loadConfig } from "./shared/infrastructure/config/env.js";
@@ -15,11 +17,21 @@ const config = loadConfig();
 const logger = createLogger(config);
 const pool = createConnectionPool(loadDatabaseConfig());
 await pool.connect();
+let actionTokenDelivery: ActionTokenDelivery = new DisabledActionTokenDelivery(logger);
+if (config.mail.adapter === "gmail") {
+  if (config.mail.email === undefined || config.mail.password === undefined) {
+    throw new Error("Gmail delivery configuration is incomplete");
+  }
+  actionTokenDelivery = new GmailActionTokenDelivery(
+    { email: config.mail.email, password: config.mail.password, fromName: config.mail.fromName, actionBaseUrl: config.mail.actionBaseUrl },
+    logger
+  );
+}
 const authService = new AuthService(
   new MssqlAuthStore(pool),
   new ArgonPasswordHasher(),
   new JoseAuthTokenCodec(config.auth.jwtAccessSecret, config.auth.tokenPepper, config.auth.jwtIssuer, config.auth.jwtAudience),
-  new DisabledActionTokenDelivery(logger),
+  actionTokenDelivery,
   config.auth
 );
 const app = createApp({ config, logger, authService });
