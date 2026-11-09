@@ -19,6 +19,7 @@
     "migrate": "tsx src/shared/infrastructure/database/migrate.ts",
     "database:verify-foundation": "tsx scripts/verify-foundation-database.ts",
     "database:verify-auth": "tsx scripts/verify-auth-database.ts",
+    "database:verify-invitations": "tsx scripts/verify-invitation-database.ts",
     "mail:verify": "tsx scripts/verify-mail-connection.ts",
     "mail:preview": "tsx scripts/preview-auth-emails.ts"
   },

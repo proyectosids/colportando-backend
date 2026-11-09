@@ -11,7 +11,7 @@ Los estados permitidos son `pendiente`, `en curso`, `bloqueada` y `completada`. 
 | I0-001 | SPEC-006, SPEC-007 | Bootstrap Node/TS/Express/Clean Architecture | G-001 | completada | Backend | Typecheck, lint, 6 unitarias, 6 HTTP, OpenAPI y build aprobados |
 | I0-002 | SPEC-001, SPEC-002 | Migraciones base tenant/institución/club/identidad/acceso | G-001, I0-001 | en curso | Datos | `up`, idempotencia y negativas aprobadas en `IDS-APP` bajo esquemas `C_*`; falta `down` en base temporal aislada |
 | I1-001 | SPEC-006 | Cuenta, sesión, verificación y recuperación | I0-002 | completada | Backend | Migración 0003 aplicada; Argon2id, JWT corto, refresh rotativo/reuse, acciones de uso único, SQL/HTTP/OpenAPI y pruebas aprobadas |
-| I1-002 | SPEC-002, SPEC-006 | Invitación y alta pública como aspirante | I1-001 | pendiente | Backend | Registro no permite elevar condición/roles; pruebas tenant y retry |
+| I1-002 | SPEC-002, SPEC-006 | Invitación y alta pública como aspirante | I1-001 | en curso | Backend | Código, correo, idempotencia, autorización, OpenAPI y pruebas locales listos; falta aplicar 0004 y ejecutar verificación real al reconectar la red institucional |
 | I2-001 | SPEC-003 | Programas, sesiones, inscripción y asistencias | I1-002 | pendiente | Backend/datos | Casos de uso completos, transacciones, OpenAPI y pruebas |
 | I2-002 | SPEC-003 | Promoción y reconocimiento por experiencia | I2-001 | pendiente | Backend/seguridad | Operaciones distintas, autorización, evidencia e historial verificadas |
 | I3-001 | SPEC-004 | Campañas, grupos, asociados, campos y apelaciones | I1-002 | pendiente | Backend | Flujo funcional y pruebas de alcance club/grupo |

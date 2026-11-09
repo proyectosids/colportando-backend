@@ -37,6 +37,7 @@ function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
       refreshTtlSeconds: 2_592_000,
       sessionTtlSeconds: 7_776_000,
       actionTokenTtlSeconds: 3_600,
+      invitationTtlSeconds: 604_800,
       passwordMinLength: 12
     },
     mail: {

@@ -28,6 +28,8 @@ Con `PORT=3000`:
 
 I1-001 expone bajo `/api/v1/auth`: login, refresh rotativo, logout, verificación de correo, recuperación de contraseña y `/me`. Los access tokens son JWT cortos y los refresh/action tokens sólo se guardan como HMAC. La reutilización de un refresh token revoca su familia y sesión.
 
+I1-002 añade creación, consulta y aceptación de invitaciones bajo `/api/v1/auth/invitations`. Crear y aceptar exige `Idempotency-Key`; sólo un actor con `membership.invitation.create` en el alcance correspondiente puede invitar. El cliente público no envía tenant, rol, cargo ni condición: el resultado está cerrado a membresía `PENDING` y condición `ASPIRANT`.
+
 Los secretos y TTL se configuran con `JWT_*`, `ACTION_TOKEN_PEPPER` y `AUTH_*`; en producción no se aceptan secretos de desarrollo.
 
 ### Correo de autenticación
@@ -49,6 +51,7 @@ Configura las variables `SQL_*` de `.env` sobre una base vacía y ejecuta:
 npm run migrate
 npm run database:verify-foundation
 npm run database:verify-auth
+npm run database:verify-invitations
 ```
 
 El runner usa pool `mssql`, bloqueo de aplicación, transacción serializable, checksum SHA-256 e historial en `[C_infra].schema_migration`. Todos los objetos de Colportando viven en esquemas con prefijo `C_` para poder compartir la base sin mezclarse con otras aplicaciones. Los archivos `down` son sólo para desarrollo/ensayo y se ejecutan manualmente de forma consciente.

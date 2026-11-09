@@ -8,6 +8,7 @@ import swaggerUi from "swagger-ui-express";
 
 import { GetHealthStatus } from "../modules/health/application/get-health-status.js";
 import type { AuthService } from "../modules/auth/application/auth-service.js";
+import type { InvitationService } from "../modules/auth/application/invitation-service.js";
 import { createAuthRouter } from "../modules/auth/presentation/http/auth-router.js";
 import { SystemClock } from "../modules/health/infrastructure/system-clock.js";
 import { createHealthRouter } from "../modules/health/presentation/http/health-router.js";
@@ -22,9 +23,10 @@ export type CreateAppDependencies = Readonly<{
   config: AppConfig;
   logger: Logger;
   authService?: AuthService;
+  invitationService?: InvitationService;
 }>;
 
-export function createApp({ config, logger, authService }: CreateAppDependencies): Express {
+export function createApp({ config, logger, authService, invitationService }: CreateAppDependencies): Express {
   const app = express();
   const openApiDocument = createOpenApiDocument();
   const getHealthStatus = new GetHealthStatus(new SystemClock());
@@ -71,7 +73,7 @@ export function createApp({ config, logger, authService }: CreateAppDependencies
       }
     }),
     createHealthRouter(getHealthStatus),
-    ...(authService === undefined ? [] : [createAuthRouter(authService)])
+    ...(authService === undefined ? [] : [createAuthRouter(authService, invitationService)])
   );
 
   if (config.swaggerEnabled) {

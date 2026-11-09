@@ -27,6 +27,22 @@ describe("authentication email templates", () => {
     }));
   });
 
+  it("renders a club-specific invitation without elevated-role language", () => {
+    const email = renderAuthActionEmail({ purpose: "CLUB_INVITATION", token: "invitation-token", expiresAt: new Date("2026-11-15T20:00:00.000Z"), actionBaseUrl: "https://app.example/auth", context: { clubName: "Club Central", institutionName: "Universidad Linda Vista" } });
+    expect(email.subject).toBe("Invitación a Club Central en Colportando App");
+    expect(email.html).toContain("Únete a Club Central");
+    expect(email.html).toContain("registrarte como aspirante");
+    expect(email.html).not.toMatch(/administrador|COLPORTOR|\brol\b/i);
+  });
+
+  it("sanitizes organization names used in invitation headers and HTML", () => {
+    const email = renderAuthActionEmail({ purpose: "CLUB_INVITATION", token: "invitation-token", expiresAt: new Date("2026-11-15T20:00:00.000Z"), actionBaseUrl: "https://app.example/auth", context: { clubName: "Club\r\nBcc: attacker@example.com", institutionName: "Universidad <script>" } });
+    expect(email.subject).not.toContain("\r");
+    expect(email.subject).not.toContain("\n");
+    expect(email.html).toContain("Universidad &lt;script&gt;");
+    expect(email.html).not.toContain("Universidad <script>");
+  });
+
   it("renders recovery-specific copy and escapes token content in HTML", () => {
     const email = renderAuthActionEmail({ purpose: "PASSWORD_RESET", token: "token&unsafe", expiresAt: new Date("2026-11-09T01:00:00.000Z"), actionBaseUrl: "https://app.example/auth" });
     expect(email.subject).toBe("Restablece tu contraseña en Colportando App");

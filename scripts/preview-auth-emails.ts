@@ -8,9 +8,9 @@ await mkdir(outputDirectory, { recursive: true });
 const expiresAt = new Date(Date.now() + 60 * 60 * 1_000);
 const token = "preview-token-not-valid-for-authentication";
 
-for (const purpose of ["EMAIL_VERIFICATION", "PASSWORD_RESET"] as const) {
-  const rendered = renderAuthActionEmail({ purpose, token, expiresAt, actionBaseUrl: "https://colportando.example/auth" });
-  const filename = purpose === "EMAIL_VERIFICATION" ? "email-verification.html" : "password-reset.html";
+for (const purpose of ["EMAIL_VERIFICATION", "PASSWORD_RESET", "CLUB_INVITATION"] as const) {
+  const rendered = renderAuthActionEmail({ purpose, token, expiresAt, actionBaseUrl: "https://colportando.example/auth", ...(purpose === "CLUB_INVITATION" ? { context: { clubName: "Club Central", institutionName: "Universidad Linda Vista" } } : {}) });
+  const filename = purpose === "EMAIL_VERIFICATION" ? "email-verification.html" : purpose === "PASSWORD_RESET" ? "password-reset.html" : "club-invitation.html";
   await writeFile(path.join(outputDirectory, filename), rendered.html, "utf8");
 }
 

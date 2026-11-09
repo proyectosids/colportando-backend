@@ -14,7 +14,7 @@ export class GmailActionTokenDelivery implements ActionTokenDelivery {
   }
 
   public async deliver(input: Parameters<ActionTokenDelivery["deliver"]>[0]): Promise<void> {
-    const message = renderAuthActionEmail({ purpose: input.purpose, token: input.token, expiresAt: input.expiresAt, actionBaseUrl: this.config.actionBaseUrl });
+    const message = renderAuthActionEmail({ purpose: input.purpose, token: input.token, expiresAt: input.expiresAt, actionBaseUrl: this.config.actionBaseUrl, ...(input.context === undefined ? {} : { context: input.context }) });
     try {
       await this.transporter.sendMail({
         from: { name: this.config.fromName, address: this.config.email },

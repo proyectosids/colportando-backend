@@ -24,6 +24,7 @@ const envSchema = z.object({
   AUTH_REFRESH_TTL_SECONDS: z.coerce.number().int().min(300).default(2_592_000),
   AUTH_SESSION_TTL_SECONDS: z.coerce.number().int().min(300).default(7_776_000),
   AUTH_ACTION_TOKEN_TTL_SECONDS: z.coerce.number().int().min(300).max(86_400).default(3_600),
+  AUTH_INVITATION_TTL_SECONDS: z.coerce.number().int().min(3_600).max(2_592_000).default(604_800),
   AUTH_PASSWORD_MIN_LENGTH: z.coerce.number().int().min(8).max(128).default(12),
   AUTH_ACTION_BASE_URL: z.url().default("http://localhost:5173/auth"),
   MAIL_ADAPTER: z.enum(["disabled", "gmail"]).default("disabled"),
@@ -49,6 +50,7 @@ export type AppConfig = {
     refreshTtlSeconds: number;
     sessionTtlSeconds: number;
     actionTokenTtlSeconds: number;
+    invitationTtlSeconds: number;
     passwordMinLength: number;
   }>;
   mail: Readonly<{
@@ -101,6 +103,7 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
       refreshTtlSeconds: parsed.data.AUTH_REFRESH_TTL_SECONDS,
       sessionTtlSeconds: parsed.data.AUTH_SESSION_TTL_SECONDS,
       actionTokenTtlSeconds: parsed.data.AUTH_ACTION_TOKEN_TTL_SECONDS,
+      invitationTtlSeconds: parsed.data.AUTH_INVITATION_TTL_SECONDS,
       passwordMinLength: parsed.data.AUTH_PASSWORD_MIN_LENGTH
     },
     mail: {

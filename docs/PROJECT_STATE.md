@@ -4,7 +4,7 @@ Actualizado: 2026-11-08 (America/Mexico_City)
 
 ## Fase actual
 
-Etapa 2. I0-001 e I1-001 están completados y verificados. I0-002 ya fue aplicado en SQL Server y sus invariantes multitenant fueron verificadas; sólo falta ensayar `down` en una base temporal aislada.
+Etapa 2. I0-001 e I1-001 están completados y verificados. I1-002 está implementado y aprobado localmente, pendiente de aplicar la migración 0004 y ejecutar su verificador en `IDS-APP` cuando el equipo vuelva a la red institucional.
 
 ## Completado y verificado
 
@@ -28,6 +28,9 @@ Etapa 2. I0-001 e I1-001 están completados y verificados. I0-002 ya fue aplicad
 - La instalación activa está en la base compartida `IDS-APP`. Los siete esquemas físicos usan el prefijo `C_`: `C_infra`, `C_platform`, `C_organization`, `C_identity`, `C_membership`, `C_authorization` y `C_audit`.
 - Las migraciones `0001`–`0003` se aplicaron allí de forma transaccional e idempotente: 22 tablas de Colportando, separadas de las 206 tablas preexistentes. El historial vive en `C_infra.schema_migration`.
 - API `/api/v1/auth`: login, refresh, logout, solicitud/confirmación de verificación, solicitud/confirmación de reset y perfil autenticado `/me`; OpenAPI alineado.
+- I1-002 implementa invitaciones autorizadas por `membership.invitation.create`, alcance resuelto en servidor, correo específico del club, consulta pública con correo enmascarado y aceptación transaccional.
+- El alta reutiliza la Persona vinculada dentro del tenant o crea cuenta/Persona/vínculo; la membresía sólo puede resultar `PENDING` + `ASPIRANT`. El payload público rechaza condición, rol y cargo.
+- Creación y aceptación usan `Idempotency-Key`; el retry no reenvía correo ni vuelve a consumir el token. Ambas operaciones producen auditoría sin guardar el token.
 
 ## Decisiones aprobadas
 
@@ -47,7 +50,8 @@ Etapa 2. I0-001 e I1-001 están completados y verificados. I0-002 ya fue aplicad
 - Los scripts `down` aún no se han ejecutado: deben probarse en una base temporal aislada, no sobre la base configurada que acaba de recibir el esquema.
 - Gmail quedó integrado mediante Nodemailer con `AUTH_PASS_APP`, remitente `Colportando App`, plantillas HTML/texto específicas para verificación y reset, y respuesta neutral aun si el proveedor falla. La conexión SMTP fue verificada sin enviar correo.
 - `AUTH_ACTION_BASE_URL` permanece en localhost para desarrollo; falta definir el dominio HTTPS o deep link Flutter definitivo antes de enviar enlaces a usuarios reales.
-- La creación/vinculación pública de cuenta, Persona y membresía pertenece a I1-002; capacitación y módulos operativos siguen pendientes.
+- La migración `0004_club_invitations` no se aplicó: durante el intento se perdió la red institucional y el equipo volvió a `192.168.1.108`; SQL Server no recibió DDL.
+- Capacitación y módulos operativos siguen pendientes.
 - El manual Kerusso describe organización y funciones; no prueba por sí solo todas las reglas del programa institucional.
 - La presentación de bonificación aporta ejemplos/reglas de Verano 2026 que deben validarse con Finanzas antes de convertirse en fórmulas del sistema.
 - No hay proyectos Flutter o React presentes en la raíz inspeccionada; no se pudieron contrastar contratos de clientes.
@@ -63,8 +67,8 @@ Etapa 2. I0-001 e I1-001 están completados y verificados. I0-002 ya fue aplicad
 - `codex --version` y ayuda local; consulta de documentación oficial sobre multiagente/configuración.
 - `npm run typecheck`: aprobado.
 - `npm run lint`: aprobado.
-- `npm test`: 5 archivos, 17 pruebas aprobadas; incluye contrato que prohíbe esquemas físicos sin prefijo `C_`.
-- `npm run test:integration`: 2 archivos, 10 pruebas HTTP aprobadas (requirió permitir puerto local efímero).
+- `npm test`: 6 archivos, 24 pruebas aprobadas; incluye contratos de esquema `C_*`, invitación participante, idempotencia y sanitización del correo.
+- `npm run test:integration`: 2 archivos, 12 pruebas HTTP aprobadas; incluye rechazo de `COLPORTOR` en alta pública.
 - `npm run openapi:validate`: aprobado.
 - `npm run build`: aprobado.
 - `npm audit --omit=dev`: 0 vulnerabilidades de producción. El toolchain de desarrollo conserva 7 avisos moderados transitivos de `minimatch`; forzar la corrección propuesta rompería compatibilidad TypeScript/ESLint.
@@ -74,4 +78,4 @@ Etapa 2. I0-001 e I1-001 están completados y verificados. I0-002 ya fue aplicad
 
 ## Siguiente acción concreta
 
-Iniciar I1-002: invitación y alta pública que crea/vincula cuenta, Persona y membresía siempre como `ASPIRANT`, con transacción e idempotencia. Definir el dominio HTTPS o deep link Flutter definitivo antes de pruebas de correo con usuarios reales.
+Al reconectar la red institucional: aplicar `0004`, ejecutar `npm run database:verify-invitations`, comprobar idempotencia y marcar I1-002 completado. Después iniciar I2-001 (capacitación).

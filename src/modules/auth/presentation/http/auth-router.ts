@@ -3,8 +3,9 @@ import { rateLimit } from "express-rate-limit";
 import { ZodError, type ZodType } from "zod";
 
 import type { AuthService } from "../../application/auth-service.js";
+import type { InvitationService } from "../../application/invitation-service.js";
 import { AppError } from "../../../../shared/presentation/http/errors/app-error.js";
-import { actionConfirmSchema, actionRequestSchema, loginRequestSchema, passwordResetConfirmSchema, refreshRequestSchema } from "./auth-schemas.js";
+import { acceptInvitationRequestSchema, actionConfirmSchema, actionRequestSchema, createInvitationRequestSchema, idempotencyKeySchema, invitationTokenParamsSchema, loginRequestSchema, passwordResetConfirmSchema, refreshRequestSchema } from "./auth-schemas.js";
 
 const parse = <T>(schema: ZodType<T>, body: unknown): T => {
   try { return schema.parse(body); }
@@ -15,7 +16,7 @@ const asyncHandler = (handler: RequestHandler): RequestHandler => (request, resp
 
 const neutralMessage = { message: "If the account is eligible, delivery will be attempted." } as const;
 
-export function createAuthRouter(auth: AuthService): Router {
+export function createAuthRouter(auth: AuthService, invitations?: InvitationService): Router {
   const router = Router();
   const sensitiveLimit = rateLimit({
     windowMs: 15 * 60_000,
@@ -61,6 +62,38 @@ export function createAuthRouter(auth: AuthService): Router {
     if (authorization === undefined || !authorization.startsWith("Bearer ")) throw new AppError(401, "INVALID_ACCESS_TOKEN", "Access token is invalid");
     response.status(200).json(await auth.authenticateAccessToken(authorization.slice(7)));
   }));
+
+  if (invitations !== undefined) {
+    router.post("/auth/invitations", sensitiveLimit, asyncHandler(async (request, response) => {
+      const authorization = request.get("authorization");
+      if (authorization === undefined || !authorization.startsWith("Bearer ")) throw new AppError(401, "INVALID_ACCESS_TOKEN", "Access token is invalid");
+      const actor = await auth.authenticateAccessToken(authorization.slice(7));
+      const body = parse(createInvitationRequestSchema, request.body);
+      const idempotencyKey = parse(idempotencyKeySchema, request.get("idempotency-key"));
+      const result = await invitations.create({ actorAccountId: actor.accountId, clubId: body.clubId, email: body.email, idempotencyKey, correlationId: response.locals.correlationId as string });
+      response.status(result.replayed ? 200 : 202).json(result);
+    }));
+    router.get("/auth/invitations/:token", sensitiveLimit, asyncHandler(async (request, response) => {
+      const { token } = parse(invitationTokenParamsSchema, request.params);
+      response.status(200).json(await invitations.inspect(token));
+    }));
+    router.post("/auth/invitations/:token/accept", sensitiveLimit, asyncHandler(async (request, response) => {
+      const { token } = parse(invitationTokenParamsSchema, request.params);
+      const body = parse(acceptInvitationRequestSchema, request.body);
+      const idempotencyKey = parse(idempotencyKeySchema, request.get("idempotency-key"));
+      const result = await invitations.accept({
+        token,
+        password: body.password,
+        givenNames: body.givenNames,
+        familyName: body.familyName,
+        ...(body.secondFamilyName === undefined ? {} : { secondFamilyName: body.secondFamilyName }),
+        ...(body.phoneE164 === undefined ? {} : { phoneE164: body.phoneE164 }),
+        idempotencyKey,
+        correlationId: response.locals.correlationId as string
+      });
+      response.status(result.replayed ? 200 : 201).json(result);
+    }));
+  }
 
   return router;
 }

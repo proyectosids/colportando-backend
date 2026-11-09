@@ -3,6 +3,7 @@ import { createOpenApiDocument } from "../src/shared/presentation/http/openapi/d
 const document = createOpenApiDocument();
 const healthOperation = document.paths["/api/v1/health"]?.get;
 const loginOperation = document.paths["/api/v1/auth/login"]?.post;
+const invitationOperation = document.paths["/api/v1/auth/invitations"]?.post;
 const bearerScheme = document.components?.securitySchemes?.bearerAuth;
 
 if (document.openapi !== "3.0.3") {
@@ -14,6 +15,9 @@ if (healthOperation?.operationId !== "getHealth") {
 }
 if (loginOperation?.operationId !== "login") {
   throw new Error("Authentication operations are absent from the OpenAPI document");
+}
+if (invitationOperation?.operationId !== "createClubInvitation") {
+  throw new Error("Invitation operations are absent from the OpenAPI document");
 }
 
 if (bearerScheme === undefined || !("type" in bearerScheme) || bearerScheme.type !== "http") {

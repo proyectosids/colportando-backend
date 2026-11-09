@@ -4,8 +4,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createApp } from "../../src/composition/create-app.js";
 import { AuthService } from "../../src/modules/auth/application/auth-service.js";
+import { InvitationService } from "../../src/modules/auth/application/invitation-service.js";
 import type { AuthTokenCodec, PasswordHasher } from "../../src/modules/auth/application/ports/auth-crypto.js";
 import type { AuthStore } from "../../src/modules/auth/application/ports/auth-store.js";
+import type { InvitationStore } from "../../src/modules/auth/application/ports/invitation-store.js";
 import type { AppConfig } from "../../src/shared/infrastructure/config/env.js";
 import { errorResponseSchema } from "../../src/shared/presentation/http/schemas/error-schema.js";
 
@@ -32,11 +34,19 @@ function dependencies() {
   };
   const config: AppConfig = {
     nodeEnv: "test", port: 3000, logLevel: "silent", trustProxy: false, corsAllowedOrigins: ["https://app.example"], swaggerEnabled: true,
-    auth: { jwtIssuer: "test", jwtAudience: "test", jwtAccessSecret: "test-access-secret-at-least-32-characters", accessTtlSeconds: 900, tokenPepper: "test-token-pepper-at-least-32-characters", refreshTtlSeconds: 2_592_000, sessionTtlSeconds: 7_776_000, actionTokenTtlSeconds: 3_600, passwordMinLength: 12 },
+    auth: { jwtIssuer: "test", jwtAudience: "test", jwtAccessSecret: "test-access-secret-at-least-32-characters", accessTtlSeconds: 900, tokenPepper: "test-token-pepper-at-least-32-characters", refreshTtlSeconds: 2_592_000, sessionTtlSeconds: 7_776_000, actionTokenTtlSeconds: 3_600, invitationTtlSeconds: 604_800, passwordMinLength: 12 },
     mail: { adapter: "disabled", fromName: "Colportando App", actionBaseUrl: "https://app.example/auth" }
   };
   const authService = new AuthService(store, passwords, tokens, { deliver: vi.fn().mockResolvedValue(undefined) }, config.auth, () => new Date("2026-11-08T20:00:00.000Z"));
-  return { app: createApp({ config, logger: pino({ level: "silent" }), authService }), store };
+  const invitationContext = { invitationId: "8b362786-e89a-42bd-b527-ccac260fcd2f", tenantId: "b0641547-c7f6-4ed9-b1dd-2de23c7c46c4", clubId: "1454389c-dc3c-411a-ad84-1f2e294470bc", clubName: "Club Central", institutionName: "Universidad Linda Vista", targetEmail: account.email, expiresAt: new Date("2026-11-15T20:00:00.000Z") };
+  const invitationStore: InvitationStore = {
+    createInvitation: vi.fn().mockResolvedValue({ ...invitationContext, replayed: false }),
+    inspectInvitation: vi.fn().mockResolvedValue(invitationContext),
+    findAcceptanceReplay: vi.fn().mockResolvedValue(null),
+    acceptInvitation: vi.fn().mockResolvedValue({ accountId: account.accountId, personId: "93932f10-8732-449c-b7fb-6530fd8aa782", membershipId: "7f7bdfcb-8798-470b-9859-30840a6fb860", membershipStatus: "PENDING", memberCondition: "ASPIRANT", emailVerified: true, replayed: false })
+  };
+  const invitationService = new InvitationService(invitationStore, store, passwords, tokens, { deliver: vi.fn().mockResolvedValue(undefined) }, config.auth, () => new Date("2026-11-08T20:00:00.000Z"));
+  return { app: createApp({ config, logger: pino({ level: "silent" }), authService, invitationService }), store };
 }
 
 describe("authentication HTTP API", () => {
@@ -66,5 +76,21 @@ describe("authentication HTTP API", () => {
     const { app } = dependencies();
     const response = await request(app).post("/api/v1/auth/login").send({ email: "not-an-email", password: "" }).expect(400);
     expect(errorResponseSchema.parse(response.body as unknown).error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("creates and inspects a participant invitation", async () => {
+    const { app } = dependencies();
+    const created = await request(app).post("/api/v1/auth/invitations").set("authorization", "Bearer signed-access-token").set("idempotency-key", "invite-http-001").send({ clubId: "1454389c-dc3c-411a-ad84-1f2e294470bc", email: "member@example.com" }).expect(202);
+    expect(created.body).toMatchObject({ invitationId: "8b362786-e89a-42bd-b527-ccac260fcd2f", status: "PENDING", replayed: false });
+    const inspected = await request(app).get("/api/v1/auth/invitations/opaque-invitation-token-with-enough-entropy").expect(200);
+    expect(inspected.body).toMatchObject({ clubName: "Club Central", institutionName: "Universidad Linda Vista" });
+  });
+
+  it("accepts only the server-defined pending aspirant outcome", async () => {
+    const { app } = dependencies();
+    const accepted = await request(app).post("/api/v1/auth/invitations/opaque-invitation-token-with-enough-entropy/accept").set("idempotency-key", "accept-http-001").send({ password: "Valid-password-123!", givenNames: "Ana", familyName: "López" }).expect(201);
+    expect(accepted.body).toMatchObject({ membershipStatus: "PENDING", memberCondition: "ASPIRANT" });
+    const elevated = await request(app).post("/api/v1/auth/invitations/opaque-invitation-token-with-enough-entropy/accept").set("idempotency-key", "accept-http-002").send({ password: "Valid-password-123!", givenNames: "Ana", familyName: "López", memberCondition: "COLPORTOR" }).expect(400);
+    expect(errorResponseSchema.parse(elevated.body as unknown).error.code).toBe("VALIDATION_ERROR");
   });
 });

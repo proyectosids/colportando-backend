@@ -36,4 +36,11 @@ describe("foundation migration contract", () => {
       sql.indexOf("[C_authorization].access_assignment")
     );
   });
+
+  it("keeps public invitation persistence participant-only", async () => {
+    const sql = await readFile(path.join(projectRoot, "migrations/0004_club_invitations.up.sql"), "utf8");
+    expect(sql).toContain("membership.invitation.create");
+    expect(sql).toContain("[C_membership].club_invitation");
+    expect(sql).not.toMatch(/role_id|member_condition|position_id/);
+  });
 });

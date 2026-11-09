@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { AppError } from "../../../shared/presentation/http/errors/app-error.js";
 import type { ActionTokenDelivery, AuthTokenCodec, PasswordHasher } from "./ports/auth-crypto.js";
-import type { ActionPurpose, AuthStore, SessionContext } from "./ports/auth-store.js";
+import type { AccountActionPurpose, AuthStore, SessionContext } from "./ports/auth-store.js";
 
 export type AuthServiceConfig = Readonly<{
   accessTtlSeconds: number;
@@ -86,7 +86,7 @@ export class AuthService {
     await this.store.revokeByRefreshToken(this.tokens.hashOpaqueToken(refreshToken), this.now());
   }
 
-  public async requestAction(email: string, purpose: ActionPurpose): Promise<void> {
+  public async requestAction(email: string, purpose: AccountActionPurpose): Promise<void> {
     const account = await this.store.findAccountByEmail(normalizeEmail(email));
     if (
       account === null ||

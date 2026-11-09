@@ -1,6 +1,6 @@
 # Migraciones SQL Server
 
-Estado: `up` de I0-002 y la migración `0003_auth_sessions` aplicados y verificados contra SQL Server el 2026-11-08. Los scripts `down` permanecen pendientes de ensayo en una base temporal aislada.
+Estado: `up` de I0-002 y `0003_auth_sessions` aplicados y verificados contra SQL Server el 2026-11-08. `0004_club_invitations` está lista pero pendiente de aplicación por pérdida de acceso a la red institucional. Los scripts `down` permanecen pendientes de ensayo en una base temporal aislada.
 
 ## Convención
 

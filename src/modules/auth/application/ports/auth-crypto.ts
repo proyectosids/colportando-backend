@@ -13,5 +13,5 @@ export interface AuthTokenCodec {
 }
 
 export interface ActionTokenDelivery {
-  deliver(input: Readonly<{ purpose: ActionPurpose; email: string; token: string; expiresAt: Date }>): Promise<void>;
+  deliver(input: Readonly<{ purpose: ActionPurpose; email: string; token: string; expiresAt: Date; context?: Readonly<{ clubName: string; institutionName: string }> }>): Promise<void>;
 }
