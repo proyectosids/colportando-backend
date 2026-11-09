@@ -1,6 +1,6 @@
 # Migraciones SQL Server
 
-Estado: migraciones `0001`–`0004` aplicadas y verificadas contra SQL Server. `0004_club_invitations` se aplicó el 2026-11-09, su segunda ejecución fue idempotente y el flujo real de invitaciones aprobó su verificador. Los scripts `down` permanecen pendientes de ensayo en una base temporal aislada.
+Estado: migraciones `0001`–`0005` aplicadas y verificadas contra SQL Server. `0005_training_core` se aplicó el 2026-11-09, su segunda ejecución fue idempotente y el flujo real de capacitación aprobó autorización, reintentos, cierre, avance y ausencia de promoción automática. Los scripts `down` permanecen pendientes de ensayo en una base temporal aislada.
 
 ## Convención
 
@@ -43,4 +43,4 @@ El runner ya cubrió la aplicación real de `up` y una segunda ejecución idempo
 - La consistencia entre `club_membership.member_condition` y el último `condition_event` se garantiza mediante el caso de uso transaccional; una migración posterior puede añadir procedimientos si se decide imponerla también en SQL.
 - No se incluye RLS. Las FKs impiden referencias cruzadas; el filtrado/autorización del backend sigue siendo obligatorio.
 - No hay seeds de roles/permisos hasta aprobar una matriz concreta por módulo. La base permite varios titulares de un mismo tipo de cargo; las restricciones de cargos unipersonales se definirán por política de club.
-- Planes, facturación, fórmulas financieras, capacitación y operación de campañas pertenecen a incrementos posteriores.
+- Planes, facturación, fórmulas financieras, promoción/reconocimiento y operación de campañas pertenecen a incrementos posteriores.

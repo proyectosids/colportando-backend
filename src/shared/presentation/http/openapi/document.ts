@@ -2,6 +2,7 @@ import { OpenAPIRegistry, OpenApiGeneratorV3 } from "@asteasolutions/zod-to-open
 
 import { healthResponseSchema } from "../../../../modules/health/presentation/http/health-schema.js";
 import { registerAuthOpenApi } from "../../../../modules/auth/presentation/http/auth-openapi.js";
+import { registerTrainingOpenApi } from "../../../../modules/training/presentation/http/training-openapi.js";
 import { errorResponseSchema } from "../schemas/error-schema.js";
 
 export function createOpenApiDocument() {
@@ -16,6 +17,7 @@ export function createOpenApiDocument() {
     description: "Access token obtained from the authentication API."
   });
   registerAuthOpenApi(registry);
+  registerTrainingOpenApi(registry);
   registry.registerPath({
     method: "get",
     path: "/api/v1/health",
@@ -53,7 +55,8 @@ export function createOpenApiDocument() {
     servers: [{ url: "/", description: "Current server" }],
     tags: [
       { name: "System", description: "Operational API endpoints" },
-      { name: "Authentication", description: "Account verification, sessions and recovery" }
+      { name: "Authentication", description: "Account verification, sessions and recovery" },
+      { name: "Training", description: "Versioned club programs, sessions, aspirant enrollment and attendance" }
     ]
   });
 }

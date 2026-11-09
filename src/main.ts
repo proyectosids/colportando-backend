@@ -10,6 +10,8 @@ import { GmailActionTokenDelivery } from "./modules/auth/infrastructure/gmail-ac
 import { JoseAuthTokenCodec } from "./modules/auth/infrastructure/jose-auth-token-codec.js";
 import { MssqlAuthStore } from "./modules/auth/infrastructure/mssql-auth-store.js";
 import { MssqlInvitationStore } from "./modules/auth/infrastructure/mssql-invitation-store.js";
+import { TrainingService } from "./modules/training/application/training-service.js";
+import { MssqlTrainingStore } from "./modules/training/infrastructure/mssql-training-store.js";
 import { loadConfig } from "./shared/infrastructure/config/env.js";
 import { createConnectionPool } from "./shared/infrastructure/database/connection-pool.js";
 import { loadDatabaseConfig } from "./shared/infrastructure/database/database-config.js";
@@ -40,7 +42,8 @@ const authService = new AuthService(
   config.auth
 );
 const invitationService = new InvitationService(new MssqlInvitationStore(pool), authStore, passwordHasher, tokenCodec, actionTokenDelivery, config.auth);
-const app = createApp({ config, logger, authService, invitationService });
+const trainingService = new TrainingService(new MssqlTrainingStore(pool));
+const app = createApp({ config, logger, authService, invitationService, trainingService });
 
 const server = app.listen(config.port, () => {
   logger.info({ port: config.port, environment: config.nodeEnv }, "HTTP server listening");

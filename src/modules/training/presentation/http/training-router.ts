@@ -1,0 +1,50 @@
+import { Router, type RequestHandler } from "express";
+import { ZodError, type ZodType } from "zod";
+
+import type { AuthService } from "../../../auth/application/auth-service.js";
+import type { TrainingService } from "../../application/training-service.js";
+import { AppError } from "../../../../shared/presentation/http/errors/app-error.js";
+import { attendanceParamsSchema, changeSessionStatusSchema, createEnrollmentSchema, createProgramSchema, createSessionSchema, enrollmentParamsSchema, idempotencyHeadersSchema, recordAttendanceSchema, sessionParamsSchema, versionParamsSchema } from "./training-schemas.js";
+
+const parse = <T>(schema: ZodType<T>, value: unknown): T => { try { return schema.parse(value); } catch (error) { if (error instanceof ZodError) throw new AppError(400, "VALIDATION_ERROR", "Request validation failed", error.issues); throw error; } };
+const asyncHandler = (handler: RequestHandler): RequestHandler => (request, response, next) => { Promise.resolve(handler(request, response, next)).catch(next); };
+
+export function createTrainingRouter(auth: AuthService, training: TrainingService): Router {
+  const router = Router();
+  const actor = async (authorization: string | undefined) => {
+    if (authorization === undefined || !authorization.startsWith("Bearer ")) throw new AppError(401, "INVALID_ACCESS_TOKEN", "Access token is invalid");
+    return auth.authenticateAccessToken(authorization.slice(7));
+  };
+  const idempotencyKey = (value: string | undefined): string => parse(idempotencyHeadersSchema, { "idempotency-key": value })["idempotency-key"];
+
+  router.post("/training/programs", asyncHandler(async (request, response) => {
+    const account = await actor(request.get("authorization")); const body = parse(createProgramSchema, request.body);
+    const result = await training.createProgram({ actorAccountId: account.accountId, clubId: body.clubId, code: body.code, name: body.name, versionLabel: body.versionLabel, ...(body.startsOn === undefined ? {} : { startsOn: body.startsOn }), ...(body.endsOn === undefined ? {} : { endsOn: body.endsOn }), idempotencyKey: idempotencyKey(request.get("idempotency-key")), correlationId: response.locals.correlationId as string });
+    response.status(result.replayed ? 200 : 201).json(result);
+  }));
+  router.post("/training/program-versions/:versionId/sessions", asyncHandler(async (request, response) => {
+    const account = await actor(request.get("authorization")); const { versionId } = parse(versionParamsSchema, request.params); const body = parse(createSessionSchema, request.body);
+    const result = await training.createSession({ actorAccountId: account.accountId, programVersionId: versionId, title: body.title, startsAt: new Date(body.startsAt), endsAt: new Date(body.endsAt), idempotencyKey: idempotencyKey(request.get("idempotency-key")), correlationId: response.locals.correlationId as string });
+    response.status(result.replayed ? 200 : 201).json({ ...result, startsAt: result.startsAt.toISOString(), endsAt: result.endsAt.toISOString() });
+  }));
+  router.post("/training/program-versions/:versionId/enrollments", asyncHandler(async (request, response) => {
+    const account = await actor(request.get("authorization")); const { versionId } = parse(versionParamsSchema, request.params); const body = parse(createEnrollmentSchema, request.body);
+    const result = await training.enroll({ actorAccountId: account.accountId, programVersionId: versionId, membershipId: body.membershipId, idempotencyKey: idempotencyKey(request.get("idempotency-key")), correlationId: response.locals.correlationId as string });
+    response.status(result.replayed ? 200 : 201).json(result);
+  }));
+  router.put("/training/sessions/:sessionId/status", asyncHandler(async (request, response) => {
+    const account = await actor(request.get("authorization")); const { sessionId } = parse(sessionParamsSchema, request.params); const body = parse(changeSessionStatusSchema, request.body);
+    const result = await training.changeSessionStatus({ actorAccountId: account.accountId, sessionId, status: body.status, idempotencyKey: idempotencyKey(request.get("idempotency-key")), correlationId: response.locals.correlationId as string });
+    response.status(200).json(result);
+  }));
+  router.put("/training/sessions/:sessionId/attendance/:enrollmentId", asyncHandler(async (request, response) => {
+    const account = await actor(request.get("authorization")); const params = parse(attendanceParamsSchema, request.params); const body = parse(recordAttendanceSchema, request.body);
+    const result = await training.recordAttendance({ actorAccountId: account.accountId, ...params, attendanceStatus: body.attendanceStatus, ...(body.notes === undefined ? {} : { notes: body.notes }), idempotencyKey: idempotencyKey(request.get("idempotency-key")), correlationId: response.locals.correlationId as string });
+    response.status(result.replayed ? 200 : 201).json(result);
+  }));
+  router.get("/training/enrollments/:enrollmentId/progress", asyncHandler(async (request, response) => {
+    const account = await actor(request.get("authorization")); const { enrollmentId } = parse(enrollmentParamsSchema, request.params);
+    response.status(200).json(await training.getProgress(account.accountId, enrollmentId));
+  }));
+  return router;
+}

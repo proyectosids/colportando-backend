@@ -4,7 +4,7 @@ Actualizado: 2026-11-09 (America/Mexico_City)
 
 ## Fase actual
 
-Etapa 2. I0-001, I1-001 e I1-002 están completados y verificados. El siguiente incremento es I2-001 (programas de capacitación, sesiones, inscripciones y asistencias).
+Etapa 2. I0-001, I1-001, I1-002 e I2-001 están completados y verificados. El siguiente incremento es I2-002 (promoción por capacitación y reconocimiento por experiencia).
 
 ## Completado y verificado
 
@@ -25,14 +25,18 @@ Etapa 2. I0-001, I1-001 e I1-002 están completados y verificados. El siguiente 
 - Verificación de correo y recuperación mediante tokens opacos aleatorios guardados como HMAC-SHA-256, expiración, propósito, revocación previa y consumo único con efecto atómico.
 - Reset de contraseña revoca sesiones, familias y refresh tokens; logout por refresh token es idempotente y revoca la familia completa.
 - Migración `0003_auth_sessions` aplicada en SQL Server; flujo real completo aprobado con fixtures aleatorios eliminados al finalizar.
-- La instalación activa está en la base compartida `IDS-APP`. Los siete esquemas físicos usan el prefijo `C_`: `C_infra`, `C_platform`, `C_organization`, `C_identity`, `C_membership`, `C_authorization` y `C_audit`.
-- Las migraciones `0001`–`0004` se aplicaron allí de forma transaccional e idempotente: 23 tablas de Colportando, separadas de las 206 tablas preexistentes. El historial vive en `C_infra.schema_migration`.
+- La instalación activa está en la base compartida `IDS-APP`. Los ocho esquemas físicos usan el prefijo `C_`: `C_infra`, `C_platform`, `C_organization`, `C_identity`, `C_membership`, `C_authorization`, `C_audit` y `C_training`.
+- Las migraciones `0001`–`0005` se aplicaron allí de forma transaccional e idempotente: 28 tablas de Colportando, separadas de las 206 tablas preexistentes. El historial vive en `C_infra.schema_migration`.
 - API `/api/v1/auth`: login, refresh, logout, solicitud/confirmación de verificación, solicitud/confirmación de reset y perfil autenticado `/me`; OpenAPI alineado.
 - I1-002 implementa invitaciones autorizadas por `membership.invitation.create`, alcance resuelto en servidor, correo específico del club, consulta pública con correo enmascarado y aceptación transaccional.
 - El alta reutiliza la Persona vinculada dentro del tenant o crea cuenta/Persona/vínculo; la membresía sólo puede resultar `PENDING` + `ASPIRANT`. El payload público rechaza condición, rol y cargo.
 - Creación y aceptación usan `Idempotency-Key`; el retry no reenvía correo ni vuelve a consumir el token. Ambas operaciones producen auditoría sin guardar el token.
 - Migración `0004_club_invitations` aplicada en `IDS-APP`; una segunda ejecución no reaplicó cambios. El historial contiene `0001`–`0004`, la tabla quedó creada y el permiso `membership.invitation.create` existe una sola vez.
 - El verificador real de I1-002 aprobó autorización, creación, entrega única, consulta, aceptación como `PENDING` + `ASPIRANT`, reintentos idempotentes y ausencia de acceso elevado. Sus fixtures se eliminaron: `C_membership.club_invitation` quedó con cero filas al finalizar.
+- I2-001 incorpora programas y versiones de club, sesiones abiertas/cerradas/canceladas, inscripción exclusiva de membresías aspirantes, asistencia corregible mientras la sesión esté abierta y avance factual ligado a la versión.
+- La API `/api/v1/training` crea programas, sesiones e inscripciones, registra asistencia, cierra/cancela sesiones y expone avance propio o autorizado. Todas las escrituras requieren `Idempotency-Key`; permisos y alcance se resuelven en servidor.
+- El avance devuelve conteos y porcentaje sobre asistencias registradas con `eligibility: NOT_EVALUATED` y `promotedAutomatically: false`. I2-001 no modifica condición ni crea eventos de promoción.
+- Migración `0005_training_core` aplicada e idempotente en `IDS-APP`. Su verificador real aprobó reintentos, consulta propia, rechazo de escritura/lectura no autorizadas, rechazo de asistencia tras cierre y permanencia en `ASPIRANT`; los fixtures se eliminaron.
 
 ## Decisiones aprobadas
 
@@ -52,7 +56,7 @@ Etapa 2. I0-001, I1-001 e I1-002 están completados y verificados. El siguiente 
 - Los scripts `down` aún no se han ejecutado: deben probarse en una base temporal aislada, no sobre la base configurada que acaba de recibir el esquema.
 - Gmail quedó integrado mediante Nodemailer con `AUTH_PASS_APP`, remitente `Colportando App`, plantillas HTML/texto específicas para verificación y reset, y respuesta neutral aun si el proveedor falla. La conexión SMTP fue verificada sin enviar correo.
 - `AUTH_ACTION_BASE_URL` permanece en localhost para desarrollo; falta definir el dominio HTTPS o deep link Flutter definitivo antes de enviar enlaces a usuarios reales.
-- Capacitación y módulos operativos siguen pendientes.
+- Promoción/reconocimiento y módulos operativos siguen pendientes.
 - El manual Kerusso describe organización y funciones; no prueba por sí solo todas las reglas del programa institucional.
 - La presentación de bonificación aporta ejemplos/reglas de Verano 2026 que deben validarse con Finanzas antes de convertirse en fórmulas del sistema.
 - No hay proyectos Flutter o React presentes en la raíz inspeccionada; no se pudieron contrastar contratos de clientes.
@@ -68,16 +72,17 @@ Etapa 2. I0-001, I1-001 e I1-002 están completados y verificados. El siguiente 
 - `codex --version` y ayuda local; consulta de documentación oficial sobre multiagente/configuración.
 - `npm run typecheck`: aprobado.
 - `npm run lint`: aprobado.
-- `npm test`: 6 archivos, 24 pruebas aprobadas; incluye contratos de esquema `C_*`, invitación participante, idempotencia y sanitización del correo.
-- `npm run test:integration`: 2 archivos, 12 pruebas HTTP aprobadas; incluye rechazo de `COLPORTOR` en alta pública.
+- `npm test`: 7 archivos, 29 pruebas aprobadas; incluye contratos de esquema `C_*`, invitación participante, idempotencia, correo y separación entre capacitación/promoción.
+- `npm run test:integration`: 3 archivos, 15 pruebas HTTP aprobadas; incluye rechazo de `COLPORTOR` en alta pública y de campos de promoción en capacitación.
 - `npm run openapi:validate`: aprobado.
 - `npm run build`: aprobado.
 - `npm audit --omit=dev`: 0 vulnerabilidades de producción. El toolchain de desarrollo conserva 7 avisos moderados transitivos de `minimatch`; forzar la corrección propuesta rompería compatibilidad TypeScript/ESLint.
 - Migraciones: pares up/down, transacciones y checksums verificados; `up` e idempotencia ejecutados en SQL Server real. `npm run database:verify-foundation` aprobó seis invariantes y revirtió sus fixtures.
 - `npm run database:verify-auth`: verificación de correo, login, rotación, rechazo de reutilización, invalidación de access token, reset, nuevo login y logout aprobados en SQL Server real.
 - `npm run database:verify-invitations`: creación y aceptación idempotentes, correo único, membresía aspirante y cero elevación de acceso aprobados en SQL Server real; fixtures eliminados.
+- `npm run database:verify-training`: programa/versionado, sesión/cierre, inscripción, asistencia, avance propio, permisos, reintentos y permanencia como aspirante aprobados en SQL Server real; fixtures eliminados.
 - `npm run mail:verify`: autenticación SMTP Gmail aprobada sin envío. Plantillas de verificación y recuperación cubiertas por pruebas y vistas HTML locales.
 
 ## Siguiente acción concreta
 
-Iniciar I2-001: precisar el contrato aprobado de programas, sesiones, inscripciones y asistencias; después implementar dominio, migración, casos de uso, HTTP/OpenAPI y verificaciones tenant/permisos.
+Iniciar I2-002 manteniendo dos operaciones separadas: promoción por cumplimiento y reconocimiento por experiencia. Antes de cambiar condición deben definirse el snapshot de criterios/evidencias y la aprobación administrativa explícita, sin porcentaje global fijo.

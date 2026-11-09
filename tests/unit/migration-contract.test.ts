@@ -10,11 +10,23 @@ describe("foundation migration contract", () => {
     const infrastructure = await readFile(path.join(projectRoot, "migrations/0001_infrastructure.up.sql"), "utf8");
     const foundation = await readFile(path.join(projectRoot, "migrations/0002_foundation.up.sql"), "utf8");
     const sessions = await readFile(path.join(projectRoot, "migrations/0003_auth_sessions.up.sql"), "utf8");
+    const training = await readFile(path.join(projectRoot, "migrations/0005_training_core.up.sql"), "utf8");
 
     for (const schema of ["infra", "platform", "organization", "identity", "membership", "authorization", "audit"]) {
       expect(infrastructure).toContain(`N'C_${schema}'`);
     }
     expect(`${foundation}\n${sessions}`).not.toMatch(/\[(identity|authorization)\]|\b(platform|organization|membership|audit)\./);
+    expect(training).toContain("[C_training]");
+    expect(training).not.toMatch(/\[training\]/);
+  });
+
+  it("keeps training factual and separate from promotion", async () => {
+    const sql = await readFile(path.join(projectRoot, "migrations/0005_training_core.up.sql"), "utf8");
+    const store = await readFile(path.join(projectRoot, "src/modules/training/infrastructure/mssql-training-store.ts"), "utf8");
+    expect(sql).toContain("training.attendance.record");
+    expect(store).toContain("member_condition='ASPIRANT'");
+    expect(sql).not.toMatch(/UPDATE\s+\[C_membership\]\.club_membership/i);
+    expect(sql).not.toContain("TRAINING_COMPLETION");
   });
 
   it("encodes tenant-safe membership and audited promotion constraints", async () => {
