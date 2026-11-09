@@ -17,6 +17,10 @@ import type { MemberTransitionService } from "../modules/training/application/me
 import { createTrainingRouter } from "../modules/training/presentation/http/training-router.js";
 import type {CampaignOperationsService} from "../modules/operations/application/campaign-operations-service.js";
 import {createOperationsRouter} from "../modules/operations/presentation/http/operations-router.js";
+import type { InventoryService } from "../modules/inventory/application/inventory-service.js";
+import { createInventoryRouter } from "../modules/inventory/presentation/http/inventory-router.js";
+import type { WorkspaceService } from "../modules/workspace/application/workspace-service.js";
+import { createWorkspaceRouter } from "../modules/workspace/presentation/http/workspace-router.js";
 import type { AppConfig } from "../shared/infrastructure/config/env.js";
 import { AppError } from "../shared/presentation/http/errors/app-error.js";
 import { createErrorHandler } from "../shared/presentation/http/middleware/error-handler.js";
@@ -32,9 +36,11 @@ export type CreateAppDependencies = Readonly<{
   trainingService?: TrainingService;
   memberTransitionService?:MemberTransitionService;
   campaignOperationsService?:CampaignOperationsService;
+  inventoryService?: InventoryService;
+  workspaceService?: WorkspaceService;
 }>;
 
-export function createApp({ config, logger, authService, invitationService, trainingService, memberTransitionService,campaignOperationsService }: CreateAppDependencies): Express {
+export function createApp({ config, logger, authService, invitationService, trainingService, memberTransitionService,campaignOperationsService,inventoryService,workspaceService }: CreateAppDependencies): Express {
   const app = express();
   const openApiDocument = createOpenApiDocument();
   const getHealthStatus = new GetHealthStatus(new SystemClock());
@@ -83,7 +89,9 @@ export function createApp({ config, logger, authService, invitationService, trai
     createHealthRouter(getHealthStatus),
     ...(authService === undefined ? [] : [createAuthRouter(authService, invitationService)]),
     ...(authService === undefined || trainingService === undefined ? [] : [createTrainingRouter(authService, trainingService,memberTransitionService)]),
-    ...(authService===undefined||campaignOperationsService===undefined?[]:[createOperationsRouter(authService,campaignOperationsService)])
+    ...(authService===undefined||campaignOperationsService===undefined?[]:[createOperationsRouter(authService,campaignOperationsService)]),
+    ...(authService === undefined || inventoryService === undefined ? [] : [createInventoryRouter(authService, inventoryService)]),
+    ...(authService === undefined || workspaceService === undefined ? [] : [createWorkspaceRouter(authService, workspaceService)])
   );
 
   if (config.swaggerEnabled) {

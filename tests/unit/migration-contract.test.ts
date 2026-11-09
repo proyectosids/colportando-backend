@@ -38,6 +38,8 @@ describe("foundation migration contract", () => {
   });
   it("keeps campaign operations tenant-safe and excludes finance/inventory",async()=>{const sql=await readFile(path.join(projectRoot,"migrations/0007_campaign_operations.up.sql"),"utf8");expect(sql).toContain("[C_operations].campaign");expect(sql).toContain("[C_operations].group_assignment");expect(sql).toContain("[C_operations].group_change_appeal");expect(sql).toContain("FOREIGN KEY(tenant_id,campaign_id");expect(sql).not.toMatch(/commission|price|stock|inventory/i);});
 
+  it("stores catalog source and acquisition price snapshots without a stock ledger",async()=>{const sql=await readFile(path.join(projectRoot,"migrations/0008_frontend_catalog_cut.up.sql"),"utf8");expect(sql).toContain("[C_inventory].campaign_catalog");expect(sql).toContain("source_cut_at_utc_snapshot");expect(sql).toContain("unit_price_snapshot");expect(sql).toContain("INSTITUTION_ADMIN");expect(sql).not.toMatch(/stock_balance|inventory_movement|warehouse/);});
+
   it("encodes tenant-safe membership and audited promotion constraints", async () => {
     const sql = await readFile(path.join(projectRoot, "migrations/0002_foundation.up.sql"), "utf8");
 

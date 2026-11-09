@@ -23,6 +23,8 @@
     "database:verify-training": "tsx scripts/verify-training-database.ts",
     "database:verify-member-transitions": "tsx scripts/verify-member-transitions-database.ts",
     "database:verify-campaign-operations": "tsx scripts/verify-campaign-operations-database.ts",
+    "database:verify-frontend-catalog": "tsx scripts/verify-frontend-catalog-database.ts",
+    "admin:bootstrap": "tsx scripts/bootstrap-institution-admin.ts",
     "mail:verify": "tsx scripts/verify-mail-connection.ts",
     "mail:preview": "tsx scripts/preview-auth-emails.ts"
   },

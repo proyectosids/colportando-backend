@@ -4,7 +4,7 @@ Actualizado: 2026-11-09 (America/Mexico_City)
 
 ## Fase actual
 
-Etapa 2. I0-001, I1-001, I1-002, I2-001, I2-002 e I3-001 están completados y verificados. El siguiente incremento es I4-001 (catálogo, adquisiciones e inventario aprobado).
+Etapa 2. I0-001, I1-001, I1-002, I2-001, I2-002, I3-001 e I4-001 están completados y verificados. El corte Backend V1-A está listo para que frontend trabaje en paralelo. El siguiente incremento backend es I5-001 (ventas, pagos, cancelaciones y reembolsos).
 
 ## Completado y verificado
 
@@ -25,8 +25,8 @@ Etapa 2. I0-001, I1-001, I1-002, I2-001, I2-002 e I3-001 están completados y ve
 - Verificación de correo y recuperación mediante tokens opacos aleatorios guardados como HMAC-SHA-256, expiración, propósito, revocación previa y consumo único con efecto atómico.
 - Reset de contraseña revoca sesiones, familias y refresh tokens; logout por refresh token es idempotente y revoca la familia completa.
 - Migración `0003_auth_sessions` aplicada en SQL Server; flujo real completo aprobado con fixtures aleatorios eliminados al finalizar.
-- La instalación activa está en la base compartida `IDS-APP`. Los nueve esquemas físicos usan el prefijo `C_`: `C_infra`, `C_platform`, `C_organization`, `C_identity`, `C_membership`, `C_authorization`, `C_audit`, `C_training` y `C_operations`.
-- Las migraciones `0001`–`0007` se aplicaron allí de forma transaccional e idempotente: 39 tablas de Colportando, separadas de las tablas preexistentes. El historial vive en `C_infra.schema_migration`.
+- La instalación activa está en la base compartida `IDS-APP`. Los diez esquemas físicos usan el prefijo `C_`: `C_infra`, `C_platform`, `C_organization`, `C_identity`, `C_membership`, `C_authorization`, `C_audit`, `C_training`, `C_operations` y `C_inventory`.
+- Las migraciones `0001`–`0008` se aplicaron allí de forma transaccional e idempotente: 44 tablas de Colportando, separadas de las tablas preexistentes. El historial vive en `C_infra.schema_migration`.
 - API `/api/v1/auth`: login, refresh, logout, solicitud/confirmación de verificación, solicitud/confirmación de reset y perfil autenticado `/me`; OpenAPI alineado.
 - I1-002 implementa invitaciones autorizadas por `membership.invitation.create`, alcance resuelto en servidor, correo específico del club, consulta pública con correo enmascarado y aceptación transaccional.
 - El alta reutiliza la Persona vinculada dentro del tenant o crea cuenta/Persona/vínculo; la membresía sólo puede resultar `PENDING` + `ASPIRANT`. El payload público rechaza condición, rol y cargo.
@@ -45,6 +45,11 @@ Etapa 2. I0-001, I1-001, I1-002, I2-001, I2-002 e I3-001 están completados y ve
 - Solicitudes de cambio y apelaciones son procesos separados y auditables. Una aprobación cierra la asignación vigente y crea una nueva; no se impuso un límite de apelaciones ni reglas financieras no aprobadas.
 - La API `/api/v1/operations` cubre administración de campañas, grupos, participaciones, asociados y campos; cambio/apelación; y lectura de grupo protegida por permiso administrativo o asignación activa del asociado.
 - Migración `0007_campaign_operations` aplicada e idempotente en `IDS-APP`. El verificador real aprobó reintentos, aislamiento de grupo, rechazo de terceros, campo asignado, apelación aprobada, historial de dos asignaciones y exactamente una asignación activa.
+- I4-001 incorpora maestro de materiales, catálogos versionados por campaña/fuente/corte, precios y moneda explícitos, adquisiciones por participación y líneas con snapshots históricos. El servidor toma el precio del catálogo activo; el cliente sólo envía artículo y cantidad.
+- `C_inventory` contiene únicamente cinco tablas aprobadas (`material`, `campaign_catalog`, `catalog_item`, `acquisition`, `acquisition_line`). No existe almacén, kardex, saldo, movimiento ni stock GEMA.
+- `/api/v1/workspace` expone contexto efectivo, membresías, campañas, programas y roles para selectores frontend; permite asignar/revocar roles club con auditoría e idempotencia. `/api/v1/inventory` expone catálogo, adquisiciones y material propio con autorización administrativa, propia o de asociado según la consulta.
+- La matriz inicial contiene `INSTITUTION_ADMIN`, `CLUB_ADMIN`, `CAMPAIGN_MANAGER` y `TRAINING_COORDINATOR`. El frontend consume permisos efectivos, no confía sólo en nombres de rol. El primer administrador se crea mediante `npm run admin:bootstrap`, nunca por registro público.
+- Migración `0008_frontend_catalog_cut` aplicada e idempotente en `IDS-APP`. El verificador real aprobó 17 invariantes de snapshots, aislamiento, contexto, selectores, acceso, reintentos y vista personal.
 
 ## Decisiones aprobadas
 
@@ -64,7 +69,7 @@ Etapa 2. I0-001, I1-001, I1-002, I2-001, I2-002 e I3-001 están completados y ve
 - Los scripts `down` aún no se han ejecutado: deben probarse en una base temporal aislada, no sobre la base configurada que acaba de recibir el esquema.
 - Gmail quedó integrado mediante Nodemailer con `AUTH_PASS_APP`, remitente `Colportando App`, plantillas HTML/texto específicas para verificación y reset, y respuesta neutral aun si el proveedor falla. La conexión SMTP fue verificada sin enviar correo.
 - `AUTH_ACTION_BASE_URL` permanece en localhost para desarrollo; falta definir el dominio HTTPS o deep link Flutter definitivo antes de enviar enlaces a usuarios reales.
-- Catálogo, adquisiciones, inventario, ventas y finanzas siguen pendientes de sus incrementos y reglas aprobadas.
+- Ventas y finanzas siguen pendientes de sus incrementos y reglas aprobadas. El corte Backend V1-A no incluye stock interno, ventas, pagos, créditos ni bonificaciones.
 - El manual Kerusso describe organización y funciones; no prueba por sí solo todas las reglas del programa institucional.
 - La presentación de bonificación aporta ejemplos/reglas de Verano 2026 que deben validarse con Finanzas antes de convertirse en fórmulas del sistema.
 - No hay proyectos Flutter o React presentes en la raíz inspeccionada; no se pudieron contrastar contratos de clientes.
@@ -80,8 +85,8 @@ Etapa 2. I0-001, I1-001, I1-002, I2-001, I2-002 e I3-001 están completados y ve
 - `codex --version` y ayuda local; consulta de documentación oficial sobre multiagente/configuración.
 - `npm run typecheck`: aprobado.
 - `npm run lint`: aprobado.
-- `npm test`: 9 archivos, 37 pruebas aprobadas; incluye contratos de esquema `C_*`, criterios explícitos, separación promoción/reconocimiento y reglas operativas de campaña.
-- `npm run test:integration`: 4 archivos, 20 pruebas HTTP aprobadas; incluye decisión administrativa explícita, validación estricta, separación del reconocimiento y contratos de operaciones.
+- `npm test`: 10 archivos, 41 pruebas aprobadas; incluye contratos de esquema `C_*`, snapshots de catálogo, separación promoción/reconocimiento y reglas operativas.
+- `npm run test:integration`: 5 archivos, 24 pruebas HTTP aprobadas; incluye contexto frontend, catálogo, rechazo de precios cliente y material propio.
 - `npm run openapi:validate`: aprobado.
 - `npm run build`: aprobado.
 - `npm audit --omit=dev`: 0 vulnerabilidades de producción. El toolchain de desarrollo conserva 7 avisos moderados transitivos de `minimatch`; forzar la corrección propuesta rompería compatibilidad TypeScript/ESLint.
@@ -91,8 +96,9 @@ Etapa 2. I0-001, I1-001, I1-002, I2-001, I2-002 e I3-001 están completados y ve
 - `npm run database:verify-training`: programa/versionado, sesión/cierre, inscripción, asistencia, avance propio, permisos, reintentos y permanencia como aspirante aprobados en SQL Server real; fixtures eliminados.
 - `npm run database:verify-member-transitions`: criterios versionados sin umbral global, promoción, reconocimiento, autorización, evidencia, idempotencia, eventos separados, historial, ausencia de asistencias ficticias y limpieza aprobados en SQL Server real.
 - `npm run database:verify-campaign-operations`: campañas, participaciones, grupos, asociado, campos, alcance de lectura, cambio por apelación, idempotencia e historial aprobados en SQL Server real.
+- `npm run database:verify-frontend-catalog`: snapshots, tabla aprobada, material propio, aislamiento, contexto, listados y administración de acceso aprobados en SQL Server real.
 - `npm run mail:verify`: autenticación SMTP Gmail aprobada sin envío. Plantillas de verificación y recuperación cubiertas por pruebas y vistas HTML locales.
 
 ## Siguiente acción concreta
 
-Iniciar I4-001: precisar con SPEC-004 el catálogo, adquisiciones e inventario aprobado, conservando snapshots históricos y sin administrar inventario interno de GEMA.
+Frontend puede iniciar integración contra el corte V1-A usando `docs/FRONTEND_HANDOFF.md` y OpenAPI. Backend continúa con I5-001: ventas, pagos, cancelaciones y reembolsos, sin bloquear autenticación, capacitación, campañas, catálogo ni materiales.

@@ -16,6 +16,10 @@ import { MemberTransitionService } from "./modules/training/application/member-t
 import { MssqlMemberTransitionStore } from "./modules/training/infrastructure/mssql-member-transition-store.js";
 import {CampaignOperationsService}from"./modules/operations/application/campaign-operations-service.js";
 import{MssqlCampaignOperationsStore}from"./modules/operations/infrastructure/mssql-campaign-operations-store.js";
+import { InventoryService } from "./modules/inventory/application/inventory-service.js";
+import { MssqlInventoryStore } from "./modules/inventory/infrastructure/mssql-inventory-store.js";
+import { WorkspaceService } from "./modules/workspace/application/workspace-service.js";
+import { MssqlWorkspaceStore } from "./modules/workspace/infrastructure/mssql-workspace-store.js";
 import { loadConfig } from "./shared/infrastructure/config/env.js";
 import { createConnectionPool } from "./shared/infrastructure/database/connection-pool.js";
 import { loadDatabaseConfig } from "./shared/infrastructure/database/database-config.js";
@@ -49,7 +53,9 @@ const invitationService = new InvitationService(new MssqlInvitationStore(pool), 
 const trainingService = new TrainingService(new MssqlTrainingStore(pool));
 const memberTransitionService=new MemberTransitionService(new MssqlMemberTransitionStore(pool));
 const campaignOperationsService=new CampaignOperationsService(new MssqlCampaignOperationsStore(pool));
-const app = createApp({ config, logger, authService, invitationService, trainingService, memberTransitionService,campaignOperationsService });
+const inventoryService = new InventoryService(new MssqlInventoryStore(pool));
+const workspaceService = new WorkspaceService(new MssqlWorkspaceStore(pool));
+const app = createApp({ config, logger, authService, invitationService, trainingService, memberTransitionService,campaignOperationsService,inventoryService,workspaceService });
 
 const server = app.listen(config.port, () => {
   logger.info({ port: config.port, environment: config.nodeEnv }, "HTTP server listening");

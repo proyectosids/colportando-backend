@@ -4,6 +4,8 @@ import { healthResponseSchema } from "../../../../modules/health/presentation/ht
 import { registerAuthOpenApi } from "../../../../modules/auth/presentation/http/auth-openapi.js";
 import { registerTrainingOpenApi } from "../../../../modules/training/presentation/http/training-openapi.js";
 import{registerOperationsOpenApi}from"../../../../modules/operations/presentation/http/operations-openapi.js";
+import { registerInventoryOpenApi } from "../../../../modules/inventory/presentation/http/inventory-openapi.js";
+import { registerWorkspaceOpenApi } from "../../../../modules/workspace/presentation/http/workspace-openapi.js";
 import { errorResponseSchema } from "../schemas/error-schema.js";
 
 export function createOpenApiDocument() {
@@ -20,6 +22,8 @@ export function createOpenApiDocument() {
   registerAuthOpenApi(registry);
   registerTrainingOpenApi(registry);
   registerOperationsOpenApi(registry);
+  registerInventoryOpenApi(registry);
+  registerWorkspaceOpenApi(registry);
   registry.registerPath({
     method: "get",
     path: "/api/v1/health",
@@ -59,7 +63,9 @@ export function createOpenApiDocument() {
       { name: "System", description: "Operational API endpoints" },
       { name: "Authentication", description: "Account verification, sessions and recovery" },
       { name: "Training", description: "Versioned club programs, sessions, aspirant enrollment and attendance" },
-      {name:"Campaign Operations",description:"Campaigns, groups, participants, associates, fields and appeals"}
+      {name:"Campaign Operations",description:"Campaigns, groups, participants, associates, fields and appeals"},
+      { name: "Catalog and Materials", description: "Catalog snapshots, acquisitions and assigned material without a GEMA stock ledger" },
+      { name: "Workspace", description: "Frontend context, discovery lists and scoped access administration" }
     ]
   });
 }

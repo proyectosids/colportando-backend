@@ -7,6 +7,8 @@ const invitationOperation = document.paths["/api/v1/auth/invitations"]?.post;
 const trainingOperation = document.paths["/api/v1/training/programs"]?.post;
 const promotionOperation=document.paths["/api/v1/training/enrollments/{enrollmentId}/promotion-decisions"]?.post;
 const campaignOperation=document.paths["/api/v1/operations/campaigns"]?.post;
+const catalogOperation=document.paths["/api/v1/inventory/campaigns/{campaignId}/catalogs"]?.post;
+const workspaceOperation=document.paths["/api/v1/workspace/context"]?.get;
 const bearerScheme = document.components?.securitySchemes?.bearerAuth;
 
 if (document.openapi !== "3.0.3") {
@@ -27,6 +29,8 @@ if (trainingOperation?.operationId !== "createTrainingProgram") {
 }
 if(promotionOperation?.operationId!=="decideTrainingPromotion") throw new Error("Member transition operations are absent from the OpenAPI document");
 if(campaignOperation?.operationId!=="createCampaign")throw new Error("Campaign operations are absent from the OpenAPI document");
+if(catalogOperation?.operationId!=="createCampaignCatalog")throw new Error("Catalog operations are absent from the OpenAPI document");
+if(workspaceOperation?.operationId!=="getWorkspaceContext")throw new Error("Workspace operations are absent from the OpenAPI document");
 
 if (bearerScheme === undefined || !("type" in bearerScheme) || bearerScheme.type !== "http") {
   throw new Error("bearerAuth security scheme is absent or invalid");

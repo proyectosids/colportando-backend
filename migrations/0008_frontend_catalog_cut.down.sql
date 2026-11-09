@@ -1,0 +1,13 @@
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+DROP TABLE IF EXISTS [C_inventory].acquisition_line;
+DROP TABLE IF EXISTS [C_inventory].acquisition;
+DROP TABLE IF EXISTS [C_inventory].catalog_item;
+DROP TABLE IF EXISTS [C_inventory].campaign_catalog;
+DROP TABLE IF EXISTS [C_inventory].material;
+DELETE aa FROM [C_authorization].access_assignment aa JOIN [C_authorization].role r ON r.role_id=aa.role_id WHERE r.code IN('INSTITUTION_ADMIN','CLUB_ADMIN','CAMPAIGN_MANAGER','TRAINING_COORDINATOR');
+DELETE rp FROM [C_authorization].role_permission rp JOIN [C_authorization].role r ON r.role_id=rp.role_id WHERE r.code IN('INSTITUTION_ADMIN','CLUB_ADMIN','CAMPAIGN_MANAGER','TRAINING_COORDINATOR');
+DELETE FROM [C_authorization].role WHERE code IN('INSTITUTION_ADMIN','CLUB_ADMIN','CAMPAIGN_MANAGER','TRAINING_COORDINATOR');
+DELETE FROM [C_authorization].permission WHERE code IN('workspace.membership.read','authorization.assignment.manage','inventory.catalog.read','inventory.catalog.manage','inventory.acquisition.read','inventory.acquisition.manage');
+IF SCHEMA_ID(N'C_inventory') IS NOT NULL EXEC(N'DROP SCHEMA [C_inventory]');
+COMMIT TRANSACTION;

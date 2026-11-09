@@ -1,6 +1,6 @@
 # Migraciones SQL Server
 
-Estado: migraciones `0001`–`0007` aplicadas y verificadas contra SQL Server. `0007_campaign_operations` se aplicó el 2026-11-09, su segunda ejecución fue idempotente y el verificador real aprobó campañas, alcance de grupos, campos, cambio por apelación e historial de asignaciones. Los scripts `down` permanecen pendientes de ensayo en una base temporal aislada.
+Estado: migraciones `0001`–`0008` aplicadas y verificadas contra SQL Server. `0008_frontend_catalog_cut` se aplicó el 2026-11-09, su segunda ejecución fue idempotente y el verificador real aprobó catálogo, snapshots, contexto frontend y acceso. Los scripts `down` permanecen pendientes de ensayo en una base temporal aislada.
 
 ## Convención
 
@@ -43,4 +43,4 @@ El runner ya cubrió la aplicación real de `up` y una segunda ejecución idempo
 - La consistencia entre `club_membership.member_condition` y el último `condition_event` se garantiza mediante el caso de uso transaccional; una migración posterior puede añadir procedimientos si se decide imponerla también en SQL.
 - No se incluye RLS. Las FKs impiden referencias cruzadas; el filtrado/autorización del backend sigue siendo obligatorio.
 - No hay seeds de roles/permisos hasta aprobar una matriz concreta por módulo. La base permite varios titulares de un mismo tipo de cargo; las restricciones de cargos unipersonales se definirán por política de club.
-- Planes, facturación y fórmulas financieras pertenecen a incrementos posteriores. Catálogo, inventario y ventas todavía no forman parte de `C_operations`.
+- Planes, facturación, ventas y fórmulas financieras pertenecen a incrementos posteriores. `C_inventory` registra catálogo, adquisiciones y material asignado, no stock interno ni inventario GEMA.
