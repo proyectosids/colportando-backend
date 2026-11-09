@@ -13,6 +13,7 @@ import { createAuthRouter } from "../modules/auth/presentation/http/auth-router.
 import { SystemClock } from "../modules/health/infrastructure/system-clock.js";
 import { createHealthRouter } from "../modules/health/presentation/http/health-router.js";
 import type { TrainingService } from "../modules/training/application/training-service.js";
+import type { MemberTransitionService } from "../modules/training/application/member-transition-service.js";
 import { createTrainingRouter } from "../modules/training/presentation/http/training-router.js";
 import type { AppConfig } from "../shared/infrastructure/config/env.js";
 import { AppError } from "../shared/presentation/http/errors/app-error.js";
@@ -27,9 +28,10 @@ export type CreateAppDependencies = Readonly<{
   authService?: AuthService;
   invitationService?: InvitationService;
   trainingService?: TrainingService;
+  memberTransitionService?:MemberTransitionService;
 }>;
 
-export function createApp({ config, logger, authService, invitationService, trainingService }: CreateAppDependencies): Express {
+export function createApp({ config, logger, authService, invitationService, trainingService, memberTransitionService }: CreateAppDependencies): Express {
   const app = express();
   const openApiDocument = createOpenApiDocument();
   const getHealthStatus = new GetHealthStatus(new SystemClock());
@@ -77,7 +79,7 @@ export function createApp({ config, logger, authService, invitationService, trai
     }),
     createHealthRouter(getHealthStatus),
     ...(authService === undefined ? [] : [createAuthRouter(authService, invitationService)]),
-    ...(authService === undefined || trainingService === undefined ? [] : [createTrainingRouter(authService, trainingService)])
+    ...(authService === undefined || trainingService === undefined ? [] : [createTrainingRouter(authService, trainingService,memberTransitionService)])
   );
 
   if (config.swaggerEnabled) {

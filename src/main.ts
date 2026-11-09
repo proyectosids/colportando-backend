@@ -12,6 +12,8 @@ import { MssqlAuthStore } from "./modules/auth/infrastructure/mssql-auth-store.j
 import { MssqlInvitationStore } from "./modules/auth/infrastructure/mssql-invitation-store.js";
 import { TrainingService } from "./modules/training/application/training-service.js";
 import { MssqlTrainingStore } from "./modules/training/infrastructure/mssql-training-store.js";
+import { MemberTransitionService } from "./modules/training/application/member-transition-service.js";
+import { MssqlMemberTransitionStore } from "./modules/training/infrastructure/mssql-member-transition-store.js";
 import { loadConfig } from "./shared/infrastructure/config/env.js";
 import { createConnectionPool } from "./shared/infrastructure/database/connection-pool.js";
 import { loadDatabaseConfig } from "./shared/infrastructure/database/database-config.js";
@@ -43,7 +45,8 @@ const authService = new AuthService(
 );
 const invitationService = new InvitationService(new MssqlInvitationStore(pool), authStore, passwordHasher, tokenCodec, actionTokenDelivery, config.auth);
 const trainingService = new TrainingService(new MssqlTrainingStore(pool));
-const app = createApp({ config, logger, authService, invitationService, trainingService });
+const memberTransitionService=new MemberTransitionService(new MssqlMemberTransitionStore(pool));
+const app = createApp({ config, logger, authService, invitationService, trainingService, memberTransitionService });
 
 const server = app.listen(config.port, () => {
   logger.info({ port: config.port, environment: config.nodeEnv }, "HTTP server listening");

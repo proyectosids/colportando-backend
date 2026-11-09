@@ -4,7 +4,7 @@ Actualizado: 2026-11-09 (America/Mexico_City)
 
 ## Fase actual
 
-Etapa 2. I0-001, I1-001, I1-002 e I2-001 están completados y verificados. El siguiente incremento es I2-002 (promoción por capacitación y reconocimiento por experiencia).
+Etapa 2. I0-001, I1-001, I1-002 e I2-001 están completados y verificados. I2-002 está implementado y aprobado localmente; falta aplicar la migración 0006 y ejecutar su verificador en `IDS-APP` al volver a la red institucional.
 
 ## Completado y verificado
 
@@ -37,6 +37,9 @@ Etapa 2. I0-001, I1-001, I1-002 e I2-001 están completados y verificados. El si
 - La API `/api/v1/training` crea programas, sesiones e inscripciones, registra asistencia, cierra/cancela sesiones y expone avance propio o autorizado. Todas las escrituras requieren `Idempotency-Key`; permisos y alcance se resuelven en servidor.
 - El avance devuelve conteos y porcentaje sobre asistencias registradas con `eligibility: NOT_EVALUATED` y `promotedAutomatically: false`. I2-001 no modifica condición ni crea eventos de promoción.
 - Migración `0005_training_core` aplicada e idempotente en `IDS-APP`. Su verificador real aprobó reintentos, consulta propia, rechazo de escritura/lectura no autorizadas, rechazo de asistencia tras cierre y permanencia en `ASPIRANT`; los fixtures se eliminaron.
+- I2-002 configura criterios explícitos por versión (`minimumPresentSessions`, `minimumAttendanceRate` y/o códigos de evidencia), sin valor predeterminado global. La promoción toma esos criterios desde el servidor, calcula métricas, conserva snapshot y exige decisión administrativa tenant-bound.
+- El reconocimiento por experiencia es una operación y tabla diferentes, exige resumen, motivo y evidencia, y no crea inscripciones ni asistencias. Sólo una aprobación explícita cambia la condición mediante `PRIOR_EXPERIENCE_RECOGNITION`.
+- Promoción y reconocimiento son transaccionales, idempotentes y auditados; vinculan actor y asignación de acceso. El historial de condición tiene lectura protegida por `membership.transition-history.read`.
 
 ## Decisiones aprobadas
 
@@ -56,7 +59,8 @@ Etapa 2. I0-001, I1-001, I1-002 e I2-001 están completados y verificados. El si
 - Los scripts `down` aún no se han ejecutado: deben probarse en una base temporal aislada, no sobre la base configurada que acaba de recibir el esquema.
 - Gmail quedó integrado mediante Nodemailer con `AUTH_PASS_APP`, remitente `Colportando App`, plantillas HTML/texto específicas para verificación y reset, y respuesta neutral aun si el proveedor falla. La conexión SMTP fue verificada sin enviar correo.
 - `AUTH_ACTION_BASE_URL` permanece en localhost para desarrollo; falta definir el dominio HTTPS o deep link Flutter definitivo antes de enviar enlaces a usuarios reales.
-- Promoción/reconocimiento y módulos operativos siguen pendientes.
+- La migración `0006_member_transitions` no se aplicó: el intento agotó el tiempo al conectar con `172.16.30.254:1433` después de que el equipo cambiara a `192.168.1.108`; SQL Server no recibió DDL.
+- Módulos operativos posteriores siguen pendientes.
 - El manual Kerusso describe organización y funciones; no prueba por sí solo todas las reglas del programa institucional.
 - La presentación de bonificación aporta ejemplos/reglas de Verano 2026 que deben validarse con Finanzas antes de convertirse en fórmulas del sistema.
 - No hay proyectos Flutter o React presentes en la raíz inspeccionada; no se pudieron contrastar contratos de clientes.
@@ -72,8 +76,8 @@ Etapa 2. I0-001, I1-001, I1-002 e I2-001 están completados y verificados. El si
 - `codex --version` y ayuda local; consulta de documentación oficial sobre multiagente/configuración.
 - `npm run typecheck`: aprobado.
 - `npm run lint`: aprobado.
-- `npm test`: 7 archivos, 29 pruebas aprobadas; incluye contratos de esquema `C_*`, invitación participante, idempotencia, correo y separación entre capacitación/promoción.
-- `npm run test:integration`: 3 archivos, 15 pruebas HTTP aprobadas; incluye rechazo de `COLPORTOR` en alta pública y de campos de promoción en capacitación.
+- `npm test`: 8 archivos, 33 pruebas aprobadas; incluye contratos de esquema `C_*`, criterios explícitos, separación promoción/reconocimiento e inexistencia de umbral global.
+- `npm run test:integration`: 3 archivos, 17 pruebas HTTP aprobadas; incluye decisión administrativa explícita, validación estricta y separación del reconocimiento.
 - `npm run openapi:validate`: aprobado.
 - `npm run build`: aprobado.
 - `npm audit --omit=dev`: 0 vulnerabilidades de producción. El toolchain de desarrollo conserva 7 avisos moderados transitivos de `minimatch`; forzar la corrección propuesta rompería compatibilidad TypeScript/ESLint.
@@ -85,4 +89,4 @@ Etapa 2. I0-001, I1-001, I1-002 e I2-001 están completados y verificados. El si
 
 ## Siguiente acción concreta
 
-Iniciar I2-002 manteniendo dos operaciones separadas: promoción por cumplimiento y reconocimiento por experiencia. Antes de cambiar condición deben definirse el snapshot de criterios/evidencias y la aprobación administrativa explícita, sin porcentaje global fijo.
+Al reconectar la red institucional: aplicar `0006`, repetir el runner para validar idempotencia y ejecutar `npm run database:verify-member-transitions`. Si aprueba autorización, criterios, snapshots, reintentos, historial y ausencia de asistencias ficticias, marcar I2-002 completado.

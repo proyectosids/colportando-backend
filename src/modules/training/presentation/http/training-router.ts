@@ -3,19 +3,21 @@ import { ZodError, type ZodType } from "zod";
 
 import type { AuthService } from "../../../auth/application/auth-service.js";
 import type { TrainingService } from "../../application/training-service.js";
+import type { MemberTransitionService } from "../../application/member-transition-service.js";
 import { AppError } from "../../../../shared/presentation/http/errors/app-error.js";
-import { attendanceParamsSchema, changeSessionStatusSchema, createEnrollmentSchema, createProgramSchema, createSessionSchema, enrollmentParamsSchema, idempotencyHeadersSchema, recordAttendanceSchema, sessionParamsSchema, versionParamsSchema } from "./training-schemas.js";
+import { attendanceParamsSchema, changeSessionStatusSchema, configureCriteriaSchema, createEnrollmentSchema, createProgramSchema, createSessionSchema, enrollmentParamsSchema, experienceRecognitionSchema, idempotencyHeadersSchema, membershipParamsSchema, recordAttendanceSchema, sessionParamsSchema, transitionDecisionSchema, versionParamsSchema } from "./training-schemas.js";
 
 const parse = <T>(schema: ZodType<T>, value: unknown): T => { try { return schema.parse(value); } catch (error) { if (error instanceof ZodError) throw new AppError(400, "VALIDATION_ERROR", "Request validation failed", error.issues); throw error; } };
 const asyncHandler = (handler: RequestHandler): RequestHandler => (request, response, next) => { Promise.resolve(handler(request, response, next)).catch(next); };
 
-export function createTrainingRouter(auth: AuthService, training: TrainingService): Router {
+export function createTrainingRouter(auth: AuthService, training: TrainingService, transitions?:MemberTransitionService): Router {
   const router = Router();
   const actor = async (authorization: string | undefined) => {
     if (authorization === undefined || !authorization.startsWith("Bearer ")) throw new AppError(401, "INVALID_ACCESS_TOKEN", "Access token is invalid");
     return auth.authenticateAccessToken(authorization.slice(7));
   };
   const idempotencyKey = (value: string | undefined): string => parse(idempotencyHeadersSchema, { "idempotency-key": value })["idempotency-key"];
+  const evidence=(items:readonly {code:string;reference:string;description?:string|undefined}[])=>items.map((item)=>({code:item.code,reference:item.reference,...(item.description===undefined?{}:{description:item.description})}));
 
   router.post("/training/programs", asyncHandler(async (request, response) => {
     const account = await actor(request.get("authorization")); const body = parse(createProgramSchema, request.body);
@@ -46,5 +48,23 @@ export function createTrainingRouter(auth: AuthService, training: TrainingServic
     const account = await actor(request.get("authorization")); const { enrollmentId } = parse(enrollmentParamsSchema, request.params);
     response.status(200).json(await training.getProgress(account.accountId, enrollmentId));
   }));
+  if(transitions!==undefined){
+    router.put("/training/program-versions/:versionId/promotion-criteria",asyncHandler(async(request,response)=>{
+      const account=await actor(request.get("authorization")); const {versionId}=parse(versionParamsSchema,request.params); const body=parse(configureCriteriaSchema,request.body);
+      const criteria={requiredEvidenceCodes:body.criteria.requiredEvidenceCodes,...(body.criteria.minimumPresentSessions===undefined?{}:{minimumPresentSessions:body.criteria.minimumPresentSessions}),...(body.criteria.minimumAttendanceRate===undefined?{}:{minimumAttendanceRate:body.criteria.minimumAttendanceRate})};
+      const result=await transitions.configureCriteria({actorAccountId:account.accountId,programVersionId:versionId,criteria,idempotencyKey:idempotencyKey(request.get("idempotency-key")),correlationId:response.locals.correlationId as string}); response.status(200).json(result);
+    }));
+    router.post("/training/enrollments/:enrollmentId/promotion-decisions",asyncHandler(async(request,response)=>{
+      const account=await actor(request.get("authorization")); const {enrollmentId}=parse(enrollmentParamsSchema,request.params); const body=parse(transitionDecisionSchema,request.body);
+      const result=await transitions.decidePromotion({actorAccountId:account.accountId,enrollmentId,outcome:body.outcome,reason:body.reason,evidence:evidence(body.evidence),idempotencyKey:idempotencyKey(request.get("idempotency-key")),correlationId:response.locals.correlationId as string}); response.status(result.replayed?200:201).json(result);
+    }));
+    router.post("/training/memberships/:membershipId/experience-recognitions",asyncHandler(async(request,response)=>{
+      const account=await actor(request.get("authorization")); const {membershipId}=parse(membershipParamsSchema,request.params); const body=parse(experienceRecognitionSchema,request.body);
+      const result=await transitions.decideExperienceRecognition({actorAccountId:account.accountId,membershipId,outcome:body.outcome,reason:body.reason,experienceSummary:body.experienceSummary,evidence:evidence(body.evidence),idempotencyKey:idempotencyKey(request.get("idempotency-key")),correlationId:response.locals.correlationId as string}); response.status(result.replayed?200:201).json(result);
+    }));
+    router.get("/training/memberships/:membershipId/transition-history",asyncHandler(async(request,response)=>{
+      const account=await actor(request.get("authorization")); const {membershipId}=parse(membershipParamsSchema,request.params); response.status(200).json(await transitions.getHistory(account.accountId,membershipId));
+    }));
+  }
   return router;
 }

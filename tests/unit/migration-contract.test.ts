@@ -29,6 +29,14 @@ describe("foundation migration contract", () => {
     expect(sql).not.toContain("TRAINING_COMPLETION");
   });
 
+  it("persists promotion and experience recognition as distinct audited operations",async()=>{
+    const sql=await readFile(path.join(projectRoot,"migrations/0006_member_transitions.up.sql"),"utf8");
+    expect(sql).toContain("[C_training].promotion_decision");
+    expect(sql).toContain("[C_membership].experience_recognition");
+    expect(sql).toContain("criteria_snapshot_json");
+    expect(sql).not.toMatch(/DEFAULT\s+80|DEFAULT\s+0\.8/i);
+  });
+
   it("encodes tenant-safe membership and audited promotion constraints", async () => {
     const sql = await readFile(path.join(projectRoot, "migrations/0002_foundation.up.sql"), "utf8");
 

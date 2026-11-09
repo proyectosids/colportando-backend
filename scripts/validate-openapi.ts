@@ -5,6 +5,7 @@ const healthOperation = document.paths["/api/v1/health"]?.get;
 const loginOperation = document.paths["/api/v1/auth/login"]?.post;
 const invitationOperation = document.paths["/api/v1/auth/invitations"]?.post;
 const trainingOperation = document.paths["/api/v1/training/programs"]?.post;
+const promotionOperation=document.paths["/api/v1/training/enrollments/{enrollmentId}/promotion-decisions"]?.post;
 const bearerScheme = document.components?.securitySchemes?.bearerAuth;
 
 if (document.openapi !== "3.0.3") {
@@ -23,6 +24,7 @@ if (invitationOperation?.operationId !== "createClubInvitation") {
 if (trainingOperation?.operationId !== "createTrainingProgram") {
   throw new Error("Training operations are absent from the OpenAPI document");
 }
+if(promotionOperation?.operationId!=="decideTrainingPromotion") throw new Error("Member transition operations are absent from the OpenAPI document");
 
 if (bearerScheme === undefined || !("type" in bearerScheme) || bearerScheme.type !== "http") {
   throw new Error("bearerAuth security scheme is absent or invalid");

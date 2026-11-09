@@ -1,6 +1,6 @@
 # Migraciones SQL Server
 
-Estado: migraciones `0001`–`0005` aplicadas y verificadas contra SQL Server. `0005_training_core` se aplicó el 2026-11-09, su segunda ejecución fue idempotente y el flujo real de capacitación aprobó autorización, reintentos, cierre, avance y ausencia de promoción automática. Los scripts `down` permanecen pendientes de ensayo en una base temporal aislada.
+Estado: migraciones `0001`–`0005` aplicadas y verificadas contra SQL Server. `0006_member_transitions` está implementada y aprobada localmente, pero no se aplicó porque el equipo salió de la red institucional antes de conectar con SQL Server. Los scripts `down` permanecen pendientes de ensayo en una base temporal aislada.
 
 ## Convención
 
