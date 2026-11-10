@@ -10,7 +10,9 @@ describe("loadConfig", () => {
       LOG_LEVEL: "silent",
       TRUST_PROXY: "true",
       CORS_ALLOWED_ORIGINS: "https://app.example, https://admin.example",
-      SWAGGER_ENABLED: "false"
+      SWAGGER_ENABLED: "false",
+      AUTH_RATE_LIMIT_MAX_REQUESTS: "100",
+      AUTH_RATE_LIMIT_WINDOW_SECONDS: "300"
     });
 
     expect(config).toMatchObject({
@@ -18,6 +20,9 @@ describe("loadConfig", () => {
       port: 4000,
       trustProxy: true,
       swaggerEnabled: false,
+      rateLimitEnabled: false,
+      authRateLimitMaxRequests: 100,
+      authRateLimitWindowSeconds: 300,
       corsAllowedOrigins: ["https://app.example", "https://admin.example"]
     });
   });
@@ -27,12 +32,30 @@ describe("loadConfig", () => {
   });
 
   it("disables API documentation by default in production", () => {
-    expect(loadConfig({
+    const config = loadConfig({
       NODE_ENV: "production",
       JWT_ACCESS_SECRET: "production-access-secret-at-least-32-characters",
       ACTION_TOKEN_PEPPER: "production-token-pepper-at-least-32-characters",
       AUTH_ACTION_BASE_URL: "https://app.example/auth"
-    }).swaggerEnabled).toBe(false);
+    });
+    expect(config.swaggerEnabled).toBe(false);
+    expect(config.rateLimitEnabled).toBe(true);
+  });
+
+  it("allows an explicit production override for authentication rate limiting", () => {
+    const config = loadConfig({
+      NODE_ENV: "production",
+      JWT_ACCESS_SECRET: "production-access-secret-at-least-32-characters",
+      ACTION_TOKEN_PEPPER: "production-token-pepper-at-least-32-characters",
+      AUTH_RATE_LIMIT_ENABLED: "false",
+      AUTH_RATE_LIMIT_MAX_REQUESTS: "100",
+      AUTH_RATE_LIMIT_WINDOW_SECONDS: "300"
+    });
+    expect(config).toMatchObject({
+      rateLimitEnabled: false,
+      authRateLimitMaxRequests: 100,
+      authRateLimitWindowSeconds: 300
+    });
   });
 
   it("prefers the Gmail application password", () => {

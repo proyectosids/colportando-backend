@@ -16,6 +16,9 @@ const envSchema = z.object({
   TRUST_PROXY: booleanFromString.default(false),
   CORS_ALLOWED_ORIGINS: z.string().default("http://localhost:5173"),
   SWAGGER_ENABLED: booleanFromString.optional(),
+  AUTH_RATE_LIMIT_ENABLED: booleanFromString.optional(),
+  AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().min(1).max(10_000).default(10),
+  AUTH_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().min(1).max(86_400).default(900),
   JWT_ISSUER: z.string().min(1).default("colportando-backend"),
   JWT_AUDIENCE: z.string().min(1).default("colportando-clients"),
   JWT_ACCESS_SECRET: z.string().min(32).default("development-only-access-secret-change-me"),
@@ -44,6 +47,9 @@ export type AppConfig = {
   trustProxy: boolean;
   corsAllowedOrigins: readonly string[];
   swaggerEnabled: boolean;
+  rateLimitEnabled?: boolean;
+  authRateLimitMaxRequests?: number;
+  authRateLimitWindowSeconds?: number;
   auth: Readonly<{
     jwtIssuer: string;
     jwtAudience: string;
@@ -98,6 +104,9 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
     trustProxy: parsed.data.TRUST_PROXY,
     corsAllowedOrigins,
     swaggerEnabled: parsed.data.SWAGGER_ENABLED ?? parsed.data.NODE_ENV !== "production",
+    rateLimitEnabled: parsed.data.AUTH_RATE_LIMIT_ENABLED ?? parsed.data.NODE_ENV === "production",
+    authRateLimitMaxRequests: parsed.data.AUTH_RATE_LIMIT_MAX_REQUESTS,
+    authRateLimitWindowSeconds: parsed.data.AUTH_RATE_LIMIT_WINDOW_SECONDS,
     auth: {
       jwtIssuer: parsed.data.JWT_ISSUER,
       jwtAudience: parsed.data.JWT_AUDIENCE,

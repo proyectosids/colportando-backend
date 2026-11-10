@@ -43,6 +43,8 @@ npm run mail:preview  # genera HTML local en tmp/email-previews
 
 Los códigos de verificación y recuperación vencen en 10 minutos por defecto, se invalidan al reenviar y se bloquean después del máximo de intentos configurado.
 
+El rate limit HTTP de autenticación se controla con `AUTH_RATE_LIMIT_ENABLED`, `AUTH_RATE_LIMIT_MAX_REQUESTS` y `AUTH_RATE_LIMIT_WINDOW_SECONDS`. En producción se activa por defecto, pero una configuración explícita puede modificar sus valores o desactivarlo temporalmente. Los límites propios del OTP permanecen independientes.
+
 ## Migraciones
 
 Configura las variables `SQL_*` de `.env` sobre una base vacía y ejecuta:

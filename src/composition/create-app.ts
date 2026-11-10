@@ -44,6 +44,7 @@ export function createApp({ config, logger, authService, invitationService, trai
   const app = express();
   const openApiDocument = createOpenApiDocument();
   const getHealthStatus = new GetHealthStatus(new SystemClock());
+  const rateLimitEnabled = config.rateLimitEnabled ?? config.nodeEnv === "production";
 
   app.disable("x-powered-by");
   app.set("trust proxy", config.trustProxy);
@@ -71,7 +72,7 @@ export function createApp({ config, logger, authService, invitationService, trai
   app.use(express.json({ limit: "1mb" }));
   app.use(
     "/api/v1",
-    rateLimit({
+    ...(rateLimitEnabled ? [rateLimit({
       windowMs: 60_000,
       limit: 100,
       standardHeaders: "draft-8",
@@ -85,9 +86,13 @@ export function createApp({ config, logger, authService, invitationService, trai
           }
         });
       }
-    }),
+    })] : []),
     createHealthRouter(getHealthStatus),
-    ...(authService === undefined ? [] : [createAuthRouter(authService, invitationService)]),
+    ...(authService === undefined ? [] : [createAuthRouter(authService, invitationService, {
+      enabled: rateLimitEnabled,
+      maxRequests: config.authRateLimitMaxRequests ?? 10,
+      windowSeconds: config.authRateLimitWindowSeconds ?? 900
+    })]),
     ...(authService === undefined || trainingService === undefined ? [] : [createTrainingRouter(authService, trainingService,memberTransitionService)]),
     ...(authService===undefined||campaignOperationsService===undefined?[]:[createOperationsRouter(authService,campaignOperationsService)]),
     ...(authService === undefined || inventoryService === undefined ? [] : [createInventoryRouter(authService, inventoryService)]),

@@ -14,7 +14,7 @@ import { errorResponseSchema } from "../../src/shared/presentation/http/schemas/
 const account = { accountId: "3f65cecc-67ee-4a0d-aa52-d8eac572e76e", email: "member@example.com", passwordHash: "hash", status: "ACTIVE" as const };
 const sessionId = "7b9d589b-a323-42ce-8704-579cb950026d";
 
-function dependencies() {
+function dependencies(rateLimitConfig?: Readonly<{ enabled: boolean; maxRequests: number; windowSeconds: number }>) {
   const store: AuthStore = {
     findAccountByEmail: vi.fn().mockResolvedValue(account),
     findActiveAccountBySession: vi.fn().mockResolvedValue(account),
@@ -34,6 +34,11 @@ function dependencies() {
   };
   const config: AppConfig = {
     nodeEnv: "test", port: 3000, logLevel: "silent", trustProxy: false, corsAllowedOrigins: ["https://app.example"], swaggerEnabled: true,
+    ...(rateLimitConfig === undefined ? {} : {
+      rateLimitEnabled: rateLimitConfig.enabled,
+      authRateLimitMaxRequests: rateLimitConfig.maxRequests,
+      authRateLimitWindowSeconds: rateLimitConfig.windowSeconds
+    }),
     auth: { jwtIssuer: "test", jwtAudience: "test", jwtAccessSecret: "test-access-secret-at-least-32-characters", accessTtlSeconds: 900, tokenPepper: "test-token-pepper-at-least-32-characters", refreshTtlSeconds: 2_592_000, sessionTtlSeconds: 7_776_000, actionTokenTtlSeconds: 3_600, invitationTtlSeconds: 604_800, passwordMinLength: 12 },
     mail: { adapter: "disabled", fromName: "Colportando App", actionBaseUrl: "https://app.example/auth" }
   };
@@ -64,6 +69,37 @@ describe("authentication HTTP API", () => {
     const { app } = dependencies();
     const response = await request(app).post("/api/v1/auth/password-reset/request").send({ email: "member@example.com" }).expect(202);
     expect(response.body).toEqual({ message: "If the account is eligible, delivery will be attempted." });
+  });
+
+  it("does not throttle authentication endpoints in the test environment", async () => {
+    const { app } = dependencies();
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      await request(app)
+        .post("/api/v1/auth/password-reset/request")
+        .send({ email: "member@example.com" })
+        .expect(202);
+    }
+  });
+
+  it("uses the configured authentication request limit and window", async () => {
+    const { app } = dependencies({
+      enabled: true,
+      maxRequests: 2,
+      windowSeconds: 300
+    });
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await request(app)
+        .post("/api/v1/auth/password-reset/request")
+        .send({ email: "member@example.com" })
+        .expect(202);
+    }
+    const limited = await request(app)
+      .post("/api/v1/auth/password-reset/request")
+      .send({ email: "member@example.com" })
+      .expect(429);
+    expect(limited.body).toMatchObject({
+      error: { code: "RATE_LIMIT_EXCEEDED" }
+    });
   });
 
   it("validates bearer tokens against an active database session", async () => {

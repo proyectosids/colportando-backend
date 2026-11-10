@@ -16,17 +16,25 @@ const asyncHandler = (handler: RequestHandler): RequestHandler => (request, resp
 
 const neutralMessage = { message: "If the account is eligible, delivery will be attempted." } as const;
 
-export function createAuthRouter(auth: AuthService, invitations?: InvitationService): Router {
+export function createAuthRouter(
+  auth: AuthService,
+  invitations?: InvitationService,
+  rateLimitConfig: Readonly<{ enabled: boolean; maxRequests: number; windowSeconds: number }> = {
+    enabled: true,
+    maxRequests: 10,
+    windowSeconds: 900
+  }
+): Router {
   const router = Router();
-  const sensitiveLimit = rateLimit({
-    windowMs: 15 * 60_000,
-    limit: 10,
+  const sensitiveLimit: RequestHandler = rateLimitConfig.enabled ? rateLimit({
+    windowMs: rateLimitConfig.windowSeconds * 1_000,
+    limit: rateLimitConfig.maxRequests,
     standardHeaders: "draft-8",
     legacyHeaders: false,
     handler(_request, response) {
       response.status(429).json({ error: { code: "RATE_LIMIT_EXCEEDED", message: "Too many requests", correlationId: response.locals.correlationId as string } });
     }
-  });
+  }) : (_request, _response, next) => { next(); };
 
   router.post("/auth/login", sensitiveLimit, asyncHandler(async (request, response) => {
     const input = parse(loginRequestSchema, request.body);
