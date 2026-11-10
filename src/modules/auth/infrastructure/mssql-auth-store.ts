@@ -4,7 +4,7 @@ import type { AccountRecord, ActionConsumeResult, ActionPurpose, AuthStore, Refr
 
 type AccountRow = Readonly<{ accountId: string; email: string; passwordHash: string | null; status: AccountRecord["status"] }>;
 type RefreshRow = Readonly<{ tokenId: string; familyId: string; generation: number; consumedAt: Date | null; tokenRevokedAt: Date | null; tokenExpiresAt: Date; familyStatus: string; sessionId: string; accountId: string; email: string; sessionExpiresAt: Date; sessionRevokedAt: Date | null; accountStatus: AccountRecord["status"] }>;
-type ActionRow = Readonly<{ actionTokenId: string; accountId: string; expiresAt: Date; consumedAt: Date | null; revokedAt: Date | null }>;
+type ActionRow = Readonly<{ actionTokenId: string; accountId: string; tokenHash: Buffer; expiresAt: Date; consumedAt: Date | null; revokedAt: Date | null; failedAttempts: number; maxAttempts: number }>;
 
 export class MssqlAuthStore implements AuthStore {
   public constructor(private readonly pool: sql.ConnectionPool) {}
@@ -93,29 +93,39 @@ export class MssqlAuthStore implements AuthStore {
     } catch (error) { await transaction.rollback().catch(() => undefined); throw error; }
   }
 
-  public async storeActionToken(input: Parameters<AuthStore["storeActionToken"]>[0]): Promise<void> {
+  public async storeActionToken(input: Parameters<AuthStore["storeActionToken"]>[0]): Promise<"STORED" | "TOO_SOON"> {
     const transaction = new sql.Transaction(this.pool); await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
     try {
-      await new sql.Request(transaction).input("tokenId", sql.UniqueIdentifier, input.tokenId).input("purpose", sql.VarChar(40), input.purpose).input("hash", sql.VarBinary(32), input.tokenHash).input("accountId", sql.UniqueIdentifier, input.accountId).input("email", sql.VarChar(320), input.email).input("now", sql.DateTime2(3), input.now).input("expires", sql.DateTime2(3), input.expiresAt).query(`
+      const cutoff = new Date(input.now.getTime() - input.resendAfterSeconds * 1_000);
+      const recent = await new sql.Request(transaction).input("purpose", sql.VarChar(40), input.purpose).input("accountId", sql.UniqueIdentifier, input.accountId).input("cutoff", sql.DateTime2(3), cutoff).query(`SELECT TOP (1) action_token_id FROM [C_identity].action_token WITH (UPDLOCK,HOLDLOCK) WHERE account_id=@accountId AND purpose=@purpose AND issued_at_utc>@cutoff AND consumed_at_utc IS NULL AND revoked_at_utc IS NULL ORDER BY issued_at_utc DESC;`);
+      if (recent.recordset.length > 0) { await transaction.commit(); return "TOO_SOON"; }
+      await new sql.Request(transaction).input("tokenId", sql.UniqueIdentifier, input.tokenId).input("purpose", sql.VarChar(40), input.purpose).input("hash", sql.VarBinary(32), input.tokenHash).input("accountId", sql.UniqueIdentifier, input.accountId).input("email", sql.VarChar(320), input.email).input("now", sql.DateTime2(3), input.now).input("expires", sql.DateTime2(3), input.expiresAt).input("maxAttempts", sql.Int, input.maxAttempts).query(`
         UPDATE [C_identity].action_token SET revoked_at_utc=@now WHERE account_id=@accountId AND purpose=@purpose AND consumed_at_utc IS NULL AND revoked_at_utc IS NULL;
-        INSERT INTO [C_identity].action_token (action_token_id,purpose,token_hash,account_id,target_email_normalized,issued_at_utc,expires_at_utc)
-        VALUES (@tokenId,@purpose,@hash,@accountId,@email,@now,@expires);
+        INSERT INTO [C_identity].action_token (action_token_id,purpose,token_hash,account_id,target_email_normalized,issued_at_utc,expires_at_utc,max_attempts)
+        VALUES (@tokenId,@purpose,@hash,@accountId,@email,@now,@expires,@maxAttempts);
       `);
       await transaction.commit();
+      return "STORED";
     } catch (error) { await transaction.rollback().catch(() => undefined); throw error; }
   }
 
-  public consumeEmailVerification(tokenHash: Buffer, now: Date): Promise<ActionConsumeResult> { return this.consumeAction(tokenHash, now, "EMAIL_VERIFICATION", null); }
-  public consumePasswordReset(tokenHash: Buffer, passwordHash: string, now: Date): Promise<ActionConsumeResult> { return this.consumeAction(tokenHash, now, "PASSWORD_RESET", passwordHash); }
+  public consumeEmailVerification(email: string, tokenHash: Buffer, now: Date): Promise<ActionConsumeResult> { return this.consumeAction(email, tokenHash, now, "EMAIL_VERIFICATION", null); }
+  public consumePasswordReset(email: string, tokenHash: Buffer, passwordHash: string, now: Date): Promise<ActionConsumeResult> { return this.consumeAction(email, tokenHash, now, "PASSWORD_RESET", passwordHash); }
 
-  private async consumeAction(tokenHash: Buffer, now: Date, purpose: ActionPurpose, passwordHash: string | null): Promise<ActionConsumeResult> {
+  private async consumeAction(email: string, tokenHash: Buffer, now: Date, purpose: ActionPurpose, passwordHash: string | null): Promise<ActionConsumeResult> {
     const transaction = new sql.Transaction(this.pool); await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
     try {
-      const result = await new sql.Request(transaction).input("hash", sql.VarBinary(32), tokenHash).input("purpose", sql.VarChar(40), purpose).query<ActionRow>(`SELECT action_token_id AS actionTokenId, account_id AS accountId, expires_at_utc AS expiresAt, consumed_at_utc AS consumedAt, revoked_at_utc AS revokedAt FROM [C_identity].action_token WITH (UPDLOCK,HOLDLOCK) WHERE token_hash=@hash AND purpose=@purpose;`);
+      const result = await new sql.Request(transaction).input("email", sql.VarChar(320), email).input("purpose", sql.VarChar(40), purpose).query<ActionRow>(`SELECT TOP (1) action_token_id AS actionTokenId, account_id AS accountId, token_hash AS tokenHash, expires_at_utc AS expiresAt, consumed_at_utc AS consumedAt, revoked_at_utc AS revokedAt, failed_attempt_count AS failedAttempts, max_attempts AS maxAttempts FROM [C_identity].action_token WITH (UPDLOCK,HOLDLOCK) WHERE target_email_normalized=@email AND purpose=@purpose ORDER BY issued_at_utc DESC;`);
       const row = result.recordset[0];
       if (row === undefined) { await transaction.commit(); return "INVALID"; }
       if (row.consumedAt !== null || row.revokedAt !== null) { await transaction.commit(); return "USED"; }
       if (row.expiresAt <= now) { await transaction.commit(); return "EXPIRED"; }
+      if (!row.tokenHash.equals(tokenHash)) {
+        const failedAttempts = row.failedAttempts + 1;
+        await new sql.Request(transaction).input("tokenId", sql.UniqueIdentifier, row.actionTokenId).input("failed", sql.Int, failedAttempts).input("now", sql.DateTime2(3), now).query(`UPDATE [C_identity].action_token SET failed_attempt_count=@failed, revoked_at_utc=CASE WHEN @failed>=max_attempts THEN @now ELSE revoked_at_utc END WHERE action_token_id=@tokenId;`);
+        await transaction.commit();
+        return failedAttempts >= row.maxAttempts ? "ATTEMPTS_EXCEEDED" : "INVALID";
+      }
       const request = new sql.Request(transaction).input("tokenId", sql.UniqueIdentifier, row.actionTokenId).input("accountId", sql.UniqueIdentifier, row.accountId).input("now", sql.DateTime2(3), now);
       if (purpose === "EMAIL_VERIFICATION") {
         await request.query(`UPDATE [C_identity].account SET status='ACTIVE', email_verified_at_utc=COALESCE(email_verified_at_utc,@now) WHERE account_id=@accountId AND status='PENDING_VERIFICATION'; UPDATE [C_identity].action_token SET consumed_at_utc=@now WHERE action_token_id=@tokenId AND consumed_at_utc IS NULL;`);

@@ -7,11 +7,13 @@ export interface PasswordHasher {
 
 export interface AuthTokenCodec {
   createOpaqueToken(): string;
+  createNumericCode?(length: number): string;
+  createHumanCode?(length: number): string;
   hashOpaqueToken(token: string): Buffer;
   issueAccessToken(input: Readonly<{ accountId: string; sessionId: string; expiresAt: Date }>): Promise<string>;
   verifyAccessToken(token: string): Promise<Readonly<{ accountId: string; sessionId: string }>>;
 }
 
 export interface ActionTokenDelivery {
-  deliver(input: Readonly<{ purpose: ActionPurpose; email: string; token: string; expiresAt: Date; context?: Readonly<{ clubName: string; institutionName: string }> }>): Promise<void>;
+  deliver(input: Readonly<{ purpose: ActionPurpose; email: string; code: string; expiresAt: Date; context?: Readonly<{ clubName: string; institutionName: string }> }>): Promise<void>;
 }

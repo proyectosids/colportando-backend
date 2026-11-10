@@ -15,7 +15,7 @@ import { loadDatabaseConfig } from "../src/shared/infrastructure/database/databa
 class CapturingDelivery implements ActionTokenDelivery {
   public readonly tokens = new Map<ActionPurpose, string>();
   public deliver(input: Parameters<ActionTokenDelivery["deliver"]>[0]): Promise<void> {
-    this.tokens.set(input.purpose, input.token);
+    this.tokens.set(input.purpose, input.code);
     return Promise.resolve();
   }
 }
@@ -46,7 +46,7 @@ async function main(): Promise<void> {
     await service.requestAction(email, "EMAIL_VERIFICATION");
     const verificationToken = delivery.tokens.get("EMAIL_VERIFICATION");
     if (verificationToken === undefined) throw new Error("Verification token was not delivered");
-    await service.verifyEmail(verificationToken);
+    await service.verifyEmail(email, verificationToken);
 
     const firstPair = await service.login(email, "Initial-password-123!", { clientName: "database-verifier" });
     const identity = await service.authenticateAccessToken(firstPair.accessToken);
@@ -66,7 +66,7 @@ async function main(): Promise<void> {
     await service.requestAction(email, "PASSWORD_RESET");
     const resetToken = delivery.tokens.get("PASSWORD_RESET");
     if (resetToken === undefined) throw new Error("Password reset token was not delivered");
-    await service.resetPassword(resetToken, "Replacement-password-456!");
+    await service.resetPassword(email, resetToken, "Replacement-password-456!");
     const finalPair = await service.login(email, "Replacement-password-456!", { clientName: "database-verifier" });
     await service.logout(finalPair.refreshToken);
 

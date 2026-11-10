@@ -5,7 +5,7 @@ import { ZodError, type ZodType } from "zod";
 import type { AuthService } from "../../application/auth-service.js";
 import type { InvitationService } from "../../application/invitation-service.js";
 import { AppError } from "../../../../shared/presentation/http/errors/app-error.js";
-import { acceptInvitationRequestSchema, actionConfirmSchema, actionRequestSchema, createInvitationRequestSchema, idempotencyKeySchema, invitationTokenParamsSchema, loginRequestSchema, passwordResetConfirmSchema, refreshRequestSchema } from "./auth-schemas.js";
+import { acceptInvitationRequestSchema, actionConfirmSchema, actionRequestSchema, createInvitationRequestSchema, idempotencyKeySchema, invitationCodeSchema, loginRequestSchema, passwordResetConfirmSchema, refreshRequestSchema } from "./auth-schemas.js";
 
 const parse = <T>(schema: ZodType<T>, body: unknown): T => {
   try { return schema.parse(body); }
@@ -49,13 +49,13 @@ export function createAuthRouter(auth: AuthService, invitations?: InvitationServ
     const input = parse(actionRequestSchema, request.body); await auth.requestAction(input.email, "EMAIL_VERIFICATION"); response.status(202).json(neutralMessage);
   }));
   router.post("/auth/email-verification/confirm", sensitiveLimit, asyncHandler(async (request, response) => {
-    const input = parse(actionConfirmSchema, request.body); await auth.verifyEmail(input.token); response.status(204).send();
+    const input = parse(actionConfirmSchema, request.body); await auth.verifyEmail(input.email, input.code); response.status(204).send();
   }));
   router.post("/auth/password-reset/request", sensitiveLimit, asyncHandler(async (request, response) => {
     const input = parse(actionRequestSchema, request.body); await auth.requestAction(input.email, "PASSWORD_RESET"); response.status(202).json(neutralMessage);
   }));
   router.post("/auth/password-reset/confirm", sensitiveLimit, asyncHandler(async (request, response) => {
-    const input = parse(passwordResetConfirmSchema, request.body); await auth.resetPassword(input.token, input.newPassword); response.status(204).send();
+    const input = parse(passwordResetConfirmSchema, request.body); await auth.resetPassword(input.email, input.code, input.newPassword); response.status(204).send();
   }));
   router.get("/auth/me", asyncHandler(async (request, response) => {
     const authorization = request.get("authorization");
@@ -73,16 +73,16 @@ export function createAuthRouter(auth: AuthService, invitations?: InvitationServ
       const result = await invitations.create({ actorAccountId: actor.accountId, clubId: body.clubId, email: body.email, idempotencyKey, correlationId: response.locals.correlationId as string });
       response.status(result.replayed ? 200 : 202).json(result);
     }));
-    router.get("/auth/invitations/:token", sensitiveLimit, asyncHandler(async (request, response) => {
-      const { token } = parse(invitationTokenParamsSchema, request.params);
-      response.status(200).json(await invitations.inspect(token));
+    router.post("/auth/invitations/inspect", sensitiveLimit, asyncHandler(async (request, response) => {
+      const { email, code } = parse(invitationCodeSchema, request.body);
+      response.status(200).json(await invitations.inspect(email, code));
     }));
-    router.post("/auth/invitations/:token/accept", sensitiveLimit, asyncHandler(async (request, response) => {
-      const { token } = parse(invitationTokenParamsSchema, request.params);
+    router.post("/auth/invitations/accept", sensitiveLimit, asyncHandler(async (request, response) => {
       const body = parse(acceptInvitationRequestSchema, request.body);
       const idempotencyKey = parse(idempotencyKeySchema, request.get("idempotency-key"));
       const result = await invitations.accept({
-        token,
+        email: body.email,
+        code: body.code,
         password: body.password,
         givenNames: body.givenNames,
         familyName: body.familyName,

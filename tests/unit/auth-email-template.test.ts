@@ -6,12 +6,12 @@ import { renderAuthActionEmail } from "../../src/modules/auth/infrastructure/aut
 import { GmailActionTokenDelivery } from "../../src/modules/auth/infrastructure/gmail-action-token-delivery.js";
 
 describe("authentication email templates", () => {
-  it("renders a branded verification email with a server-controlled destination", () => {
-    const email = renderAuthActionEmail({ purpose: "EMAIL_VERIFICATION", token: "secret-token", expiresAt: new Date("2026-11-09T01:00:00.000Z"), actionBaseUrl: "https://app.example/auth/" });
+  it("renders a branded verification email with a one-time code and no link", () => {
+    const email = renderAuthActionEmail({ purpose: "EMAIL_VERIFICATION", code: "48271936", expiresAt: new Date("2026-11-09T01:00:00.000Z") });
     expect(email.subject).toBe("Confirma tu correo en Colportando App");
     expect(email.html).toContain("Colportando App");
-    expect(email.html).toContain("Confirmar mi correo");
-    expect(email.html).toContain("https://app.example/auth/verify-email?token=secret-token");
+    expect(email.html).toContain("48271936");
+    expect(email.html).not.toContain("href=");
     expect(email.text).toContain("sólo puede utilizarse una vez");
   });
 
@@ -19,7 +19,7 @@ describe("authentication email templates", () => {
     const sendMail = vi.fn().mockResolvedValue({ messageId: "test" });
     const transporter = { sendMail } as unknown as Transporter;
     const delivery = new GmailActionTokenDelivery({ email: "proyectos_ids@ulv.edu.mx", password: "not-real", fromName: "Colportando App", actionBaseUrl: "https://app.example/auth" }, pino({ level: "silent" }), transporter);
-    await delivery.deliver({ purpose: "EMAIL_VERIFICATION", email: "recipient@example.com", token: "secret-token", expiresAt: new Date("2026-11-09T01:00:00.000Z") });
+    await delivery.deliver({ purpose: "EMAIL_VERIFICATION", email: "recipient@example.com", code: "48271936", expiresAt: new Date("2026-11-09T01:00:00.000Z") });
     expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({
       from: { name: "Colportando App", address: "proyectos_ids@ulv.edu.mx" },
       to: "recipient@example.com",
@@ -28,7 +28,7 @@ describe("authentication email templates", () => {
   });
 
   it("renders a club-specific invitation without elevated-role language", () => {
-    const email = renderAuthActionEmail({ purpose: "CLUB_INVITATION", token: "invitation-token", expiresAt: new Date("2026-11-15T20:00:00.000Z"), actionBaseUrl: "https://app.example/auth", context: { clubName: "Club Central", institutionName: "Universidad Linda Vista" } });
+    const email = renderAuthActionEmail({ purpose: "CLUB_INVITATION", code: "K7M2-P9Q4-X6RT", expiresAt: new Date("2026-11-15T20:00:00.000Z"), context: { clubName: "Club Central", institutionName: "Universidad Linda Vista" } });
     expect(email.subject).toBe("Invitación a Club Central en Colportando App");
     expect(email.html).toContain("Únete a Club Central");
     expect(email.html).toContain("registrarte como aspirante");
@@ -36,18 +36,17 @@ describe("authentication email templates", () => {
   });
 
   it("sanitizes organization names used in invitation headers and HTML", () => {
-    const email = renderAuthActionEmail({ purpose: "CLUB_INVITATION", token: "invitation-token", expiresAt: new Date("2026-11-15T20:00:00.000Z"), actionBaseUrl: "https://app.example/auth", context: { clubName: "Club\r\nBcc: attacker@example.com", institutionName: "Universidad <script>" } });
+    const email = renderAuthActionEmail({ purpose: "CLUB_INVITATION", code: "K7M2-P9Q4-X6RT", expiresAt: new Date("2026-11-15T20:00:00.000Z"), context: { clubName: "Club\r\nBcc: attacker@example.com", institutionName: "Universidad <script>" } });
     expect(email.subject).not.toContain("\r");
     expect(email.subject).not.toContain("\n");
     expect(email.html).toContain("Universidad &lt;script&gt;");
     expect(email.html).not.toContain("Universidad <script>");
   });
 
-  it("renders recovery-specific copy and escapes token content in HTML", () => {
-    const email = renderAuthActionEmail({ purpose: "PASSWORD_RESET", token: "token&unsafe", expiresAt: new Date("2026-11-09T01:00:00.000Z"), actionBaseUrl: "https://app.example/auth" });
+  it("renders recovery-specific copy and escapes code content in HTML", () => {
+    const email = renderAuthActionEmail({ purpose: "PASSWORD_RESET", code: "12&34567", expiresAt: new Date("2026-11-09T01:00:00.000Z") });
     expect(email.subject).toBe("Restablece tu contraseña en Colportando App");
-    expect(email.html).toContain("Restablecer contraseña");
-    expect(email.html).toContain("token%26unsafe");
-    expect(email.html).not.toContain("token&unsafe");
+    expect(email.html).toContain("12&amp;34567");
+    expect(email.html).not.toContain("12&34567");
   });
 });

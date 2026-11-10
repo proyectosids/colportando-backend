@@ -17,7 +17,7 @@ class CapturingDelivery implements ActionTokenDelivery {
   public deliveries = 0;
   public deliver(input: Parameters<ActionTokenDelivery["deliver"]>[0]): Promise<void> {
     if (input.purpose === "CLUB_INVITATION") {
-      this.token = input.token;
+      this.token = input.code;
       this.deliveries += 1;
     }
     return Promise.resolve();
@@ -55,10 +55,10 @@ async function main(): Promise<void> {
     const created = await service.create({ actorAccountId: adminAccountId, clubId, email: targetEmail, idempotencyKey: `create-${suffix}`, correlationId: randomUUID() });
     const replayedCreate = await service.create({ actorAccountId: adminAccountId, clubId, email: targetEmail, idempotencyKey: `create-${suffix}`, correlationId: randomUUID() });
     if (created.replayed || !replayedCreate.replayed || delivery.deliveries !== 1 || delivery.token === undefined) throw new Error("Invitation creation idempotency failed");
-    const inspected = await service.inspect(delivery.token);
+    const inspected = await service.inspect(targetEmail, delivery.token);
     if (inspected.clubName !== "Club de prueba") throw new Error("Invitation context is incorrect");
 
-    const acceptanceInput = { token: delivery.token, password: "Verification-password-123!", givenNames: "Persona", familyName: "Invitada", idempotencyKey: `accept-${suffix}`, correlationId: randomUUID() };
+    const acceptanceInput = { email: targetEmail, code: delivery.token, password: "Verification-password-123!", givenNames: "Persona", familyName: "Invitada", idempotencyKey: `accept-${suffix}`, correlationId: randomUUID() };
     const accepted = await service.accept(acceptanceInput);
     acceptedAccountId = accepted.accountId;
     const replayedAcceptance = await service.accept(acceptanceInput);

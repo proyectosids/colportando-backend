@@ -23,10 +23,13 @@ const envSchema = z.object({
   ACTION_TOKEN_PEPPER: z.string().min(32).default("development-only-token-pepper-change-me"),
   AUTH_REFRESH_TTL_SECONDS: z.coerce.number().int().min(300).default(2_592_000),
   AUTH_SESSION_TTL_SECONDS: z.coerce.number().int().min(300).default(7_776_000),
-  AUTH_ACTION_TOKEN_TTL_SECONDS: z.coerce.number().int().min(300).max(86_400).default(3_600),
+  AUTH_CODE_TTL_SECONDS: z.coerce.number().int().min(300).max(3_600).default(600),
+  AUTH_CODE_LENGTH: z.coerce.number().int().min(6).max(10).default(8),
+  AUTH_CODE_MAX_ATTEMPTS: z.coerce.number().int().min(3).max(10).default(5),
+  AUTH_CODE_RESEND_SECONDS: z.coerce.number().int().min(30).max(600).default(60),
+  AUTH_INVITATION_CODE_LENGTH: z.coerce.number().int().min(10).max(16).default(12),
   AUTH_INVITATION_TTL_SECONDS: z.coerce.number().int().min(3_600).max(2_592_000).default(604_800),
   AUTH_PASSWORD_MIN_LENGTH: z.coerce.number().int().min(8).max(128).default(12),
-  AUTH_ACTION_BASE_URL: z.url().default("http://localhost:5173/auth"),
   MAIL_ADAPTER: z.enum(["disabled", "gmail"]).default("disabled"),
   MAIL_FROM_NAME: z.string().trim().min(1).max(120).default("Colportando App"),
   AUTH_EMAIL: z.preprocess((value) => value === "" ? undefined : value, z.email().optional()),
@@ -50,6 +53,10 @@ export type AppConfig = {
     refreshTtlSeconds: number;
     sessionTtlSeconds: number;
     actionTokenTtlSeconds: number;
+    actionCodeLength?: number;
+    actionCodeMaxAttempts?: number;
+    actionCodeResendSeconds?: number;
+    invitationCodeLength?: number;
     invitationTtlSeconds: number;
     passwordMinLength: number;
   }>;
@@ -58,7 +65,7 @@ export type AppConfig = {
     fromName: string;
     email?: string;
     password?: string;
-    actionBaseUrl: string;
+    actionBaseUrl?: string;
   }>;
 };
 
@@ -78,9 +85,6 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
   }
   if (parsed.data.NODE_ENV === "production" && (parsed.data.JWT_ACCESS_SECRET.startsWith("development-only-") || parsed.data.ACTION_TOKEN_PEPPER.startsWith("development-only-"))) {
     throw new Error("Invalid application configuration: production authentication secrets must be configured");
-  }
-  if (parsed.data.NODE_ENV === "production" && parsed.data.AUTH_ACTION_BASE_URL.startsWith("http://")) {
-    throw new Error("Invalid application configuration: AUTH_ACTION_BASE_URL must use HTTPS or an application scheme in production");
   }
   const mailPassword = parsed.data.AUTH_PASS_APP ?? parsed.data.AUTH_PASS;
   if (parsed.data.MAIL_ADAPTER === "gmail" && (parsed.data.AUTH_EMAIL === undefined || mailPassword === undefined)) {
@@ -102,7 +106,11 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
       tokenPepper: parsed.data.ACTION_TOKEN_PEPPER,
       refreshTtlSeconds: parsed.data.AUTH_REFRESH_TTL_SECONDS,
       sessionTtlSeconds: parsed.data.AUTH_SESSION_TTL_SECONDS,
-      actionTokenTtlSeconds: parsed.data.AUTH_ACTION_TOKEN_TTL_SECONDS,
+      actionTokenTtlSeconds: parsed.data.AUTH_CODE_TTL_SECONDS,
+      actionCodeLength: parsed.data.AUTH_CODE_LENGTH,
+      actionCodeMaxAttempts: parsed.data.AUTH_CODE_MAX_ATTEMPTS,
+      actionCodeResendSeconds: parsed.data.AUTH_CODE_RESEND_SECONDS,
+      invitationCodeLength: parsed.data.AUTH_INVITATION_CODE_LENGTH,
       invitationTtlSeconds: parsed.data.AUTH_INVITATION_TTL_SECONDS,
       passwordMinLength: parsed.data.AUTH_PASSWORD_MIN_LENGTH
     },
@@ -110,8 +118,7 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
       adapter: parsed.data.MAIL_ADAPTER,
       fromName: parsed.data.MAIL_FROM_NAME,
       ...(parsed.data.AUTH_EMAIL === undefined ? {} : { email: parsed.data.AUTH_EMAIL }),
-      ...(mailPassword === undefined ? {} : { password: mailPassword }),
-      actionBaseUrl: parsed.data.AUTH_ACTION_BASE_URL
+      ...(mailPassword === undefined ? {} : { password: mailPassword })
     }
   };
 }

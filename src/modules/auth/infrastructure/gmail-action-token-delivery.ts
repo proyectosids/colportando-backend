@@ -4,7 +4,7 @@ import type { Logger } from "pino";
 import type { ActionTokenDelivery } from "../application/ports/auth-crypto.js";
 import { renderAuthActionEmail } from "./auth-email-template.js";
 
-export type GmailDeliveryConfig = Readonly<{ email: string; password: string; fromName: string; actionBaseUrl: string }>;
+export type GmailDeliveryConfig = Readonly<{ email: string; password: string; fromName: string; actionBaseUrl?: string }>;
 
 export class GmailActionTokenDelivery implements ActionTokenDelivery {
   private readonly transporter: Transporter;
@@ -14,7 +14,7 @@ export class GmailActionTokenDelivery implements ActionTokenDelivery {
   }
 
   public async deliver(input: Parameters<ActionTokenDelivery["deliver"]>[0]): Promise<void> {
-    const message = renderAuthActionEmail({ purpose: input.purpose, token: input.token, expiresAt: input.expiresAt, actionBaseUrl: this.config.actionBaseUrl, ...(input.context === undefined ? {} : { context: input.context }) });
+    const message = renderAuthActionEmail({ purpose: input.purpose, code: input.code, expiresAt: input.expiresAt, ...(input.context === undefined ? {} : { context: input.context }) });
     try {
       await this.transporter.sendMail({
         from: { name: this.config.fromName, address: this.config.email },

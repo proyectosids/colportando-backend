@@ -35,7 +35,7 @@ if (config.mail.adapter === "gmail") {
     throw new Error("Gmail delivery configuration is incomplete");
   }
   actionTokenDelivery = new GmailActionTokenDelivery(
-    { email: config.mail.email, password: config.mail.password, fromName: config.mail.fromName, actionBaseUrl: config.mail.actionBaseUrl },
+    { email: config.mail.email, password: config.mail.password, fromName: config.mail.fromName },
     logger
   );
 }

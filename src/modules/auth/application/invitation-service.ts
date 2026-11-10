@@ -15,14 +15,15 @@ export class InvitationService {
     private readonly passwords: PasswordHasher,
     private readonly tokens: AuthTokenCodec,
     private readonly delivery: ActionTokenDelivery,
-    private readonly config: Readonly<{ invitationTtlSeconds: number; passwordMinLength: number }>,
+    private readonly config: Readonly<{ invitationTtlSeconds: number; invitationCodeLength?: number; actionCodeMaxAttempts?: number; passwordMinLength: number }>,
     private readonly now: () => Date = () => new Date()
   ) {}
 
   public async create(input: Readonly<{ actorAccountId: string; clubId: string; email: string; idempotencyKey: string; correlationId: string }>) {
     const now = this.now();
     const targetEmail = normalizeEmail(input.email);
-    const rawToken = this.tokens.createOpaqueToken();
+    const codeLength = this.config.invitationCodeLength ?? 12;
+    const code = this.tokens.createHumanCode?.(codeLength) ?? this.tokens.createOpaqueToken().slice(0, codeLength).toUpperCase();
     const expiresAt = new Date(now.getTime() + this.config.invitationTtlSeconds * 1_000);
     const result = await this.invitations.createInvitation({
       actorAccountId: input.actorAccountId,
@@ -30,9 +31,10 @@ export class InvitationService {
       targetEmail,
       invitationId: randomUUID(),
       actionTokenId: randomUUID(),
-      tokenHash: this.tokens.hashOpaqueToken(rawToken),
+      tokenHash: this.hashCode(targetEmail, code),
       now,
       expiresAt,
+      maxAttempts: this.config.actionCodeMaxAttempts ?? 5,
       idempotencyKey: input.idempotencyKey,
       requestHash: this.tokens.hashOpaqueToken(`invite:${input.clubId.toLowerCase()}:${targetEmail}`),
       subjectHash: this.tokens.hashOpaqueToken(`actor:${input.actorAccountId.toLowerCase()}`),
@@ -41,22 +43,25 @@ export class InvitationService {
     if (result === "FORBIDDEN") throw new AppError(403, "INVITATION_FORBIDDEN", "Account is not allowed to invite members to this club");
     if (result === "IDEMPOTENCY_CONFLICT") throw new AppError(409, "IDEMPOTENCY_KEY_REUSED", "Idempotency key was already used for a different request");
     if (!result.replayed) {
-      await this.delivery.deliver({ purpose: "CLUB_INVITATION", email: result.targetEmail, token: rawToken, expiresAt: result.expiresAt, context: { clubName: result.clubName, institutionName: result.institutionName } });
+      const displayCode = code.match(/.{1,4}/g)?.join("-") ?? code;
+      await this.delivery.deliver({ purpose: "CLUB_INVITATION", email: result.targetEmail, code: displayCode, expiresAt: result.expiresAt, context: { clubName: result.clubName, institutionName: result.institutionName } });
     }
     return { invitationId: result.invitationId, status: "PENDING" as const, expiresAt: result.expiresAt.toISOString(), replayed: result.replayed };
   }
 
-  public async inspect(token: string) {
-    const context = await this.invitations.inspectInvitation(this.tokens.hashOpaqueToken(token), this.now());
+  public async inspect(email: string, code: string) {
+    const targetEmail = normalizeEmail(email);
+    const context = await this.invitations.inspectInvitation(targetEmail, this.hashCode(targetEmail, code), this.now());
     if (context === null) throw new AppError(404, "INVITATION_NOT_AVAILABLE", "Invitation is invalid or no longer available");
     const [local, domain] = context.targetEmail.split("@");
     const emailHint = `${local?.slice(0, 2) ?? ""}${"*".repeat(Math.max(3, (local?.length ?? 0) - 2))}@${domain ?? ""}`;
     return { invitationId: context.invitationId, clubName: context.clubName, institutionName: context.institutionName, emailHint, expiresAt: context.expiresAt.toISOString() };
   }
 
-  public async accept(input: Readonly<{ token: string; password: string; givenNames: string; familyName: string; secondFamilyName?: string; phoneE164?: string; idempotencyKey: string; correlationId: string }>) {
+  public async accept(input: Readonly<{ email: string; code: string; password: string; givenNames: string; familyName: string; secondFamilyName?: string; phoneE164?: string; idempotencyKey: string; correlationId: string }>) {
     if (input.password.length < this.config.passwordMinLength) throw new AppError(400, "PASSWORD_POLICY_VIOLATION", `Password must contain at least ${String(this.config.passwordMinLength)} characters`);
-    const tokenHash = this.tokens.hashOpaqueToken(input.token);
+    const targetEmail = normalizeEmail(input.email);
+    const tokenHash = this.hashCode(targetEmail, input.code);
     const canonical = {
       givenNames: normalizeText(input.givenNames),
       familyName: normalizeText(input.familyName),
@@ -69,7 +74,7 @@ export class InvitationService {
     if (replay === "IDEMPOTENCY_CONFLICT") throw new AppError(409, "IDEMPOTENCY_KEY_REUSED", "Idempotency key was already used for a different request");
     if (replay !== null) return replay;
 
-    const context = await this.invitations.inspectInvitation(tokenHash, this.now());
+    const context = await this.invitations.inspectInvitation(targetEmail, tokenHash, this.now());
     if (context === null) throw new AppError(404, "INVITATION_NOT_AVAILABLE", "Invitation is invalid or no longer available");
     const existing = await this.accounts.findAccountByEmail(context.targetEmail);
     let existingAccountId: string | undefined;
@@ -83,6 +88,7 @@ export class InvitationService {
     }
     const result = await this.invitations.acceptInvitation({
       tokenHash,
+      targetEmail,
       ...(existingAccountId === undefined ? {} : { existingAccountId }),
       ...(newAccount === undefined ? {} : { newAccount }),
       givenNames: canonical.givenNames,
@@ -102,5 +108,10 @@ export class InvitationService {
     if (result === "CONFLICT") throw new AppError(409, "INVITATION_CONFLICT", "Invitation cannot be accepted for this account or membership");
     if (result === "IDEMPOTENCY_CONFLICT") throw new AppError(409, "IDEMPOTENCY_KEY_REUSED", "Idempotency key was already used for a different request");
     return result;
+  }
+
+  private hashCode(email: string, code: string): Buffer {
+    const normalizedCode = code.replace(/[\s-]/g, "").toUpperCase();
+    return this.tokens.hashOpaqueToken(`CLUB_INVITATION:${normalizeEmail(email)}:${normalizedCode}`);
   }
 }

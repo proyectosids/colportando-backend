@@ -22,7 +22,7 @@ Etapa 2. I0-001, I1-001, I1-002, I2-001, I2-002, I3-001 e I4-001 están completa
 - Migraciones `0001` y `0002` aplicadas en SQL Server real: 2 versiones registradas y 19 tablas creadas. Una segunda ejecución no reaplicó versiones.
 - Verificación transaccional reproducible: referencias cruzadas de club, membresía y acceso fueron rechazadas; cuenta administrativa sin membresía aceptada; membresía predeterminada `ASPIRANT`; alta inicial `COLPORTOR` rechazada. Los datos de prueba se revirtieron.
 - I1-001: autenticación por correo/contraseña con Argon2id, JWT HS256 corto validado contra sesión activa, refresh tokens rotativos por familia y revocación ante reutilización.
-- Verificación de correo y recuperación mediante tokens opacos aleatorios guardados como HMAC-SHA-256, expiración, propósito, revocación previa y consumo único con efecto atómico.
+- Verificación de correo y recuperación mediante códigos numéricos de un solo uso guardados como HMAC-SHA-256 ligado a propósito y correo, con expiración, revocación previa, límite de intentos y consumo atómico.
 - Reset de contraseña revoca sesiones, familias y refresh tokens; logout por refresh token es idempotente y revoca la familia completa.
 - Migración `0003_auth_sessions` aplicada en SQL Server; flujo real completo aprobado con fixtures aleatorios eliminados al finalizar.
 - La instalación activa está en la base compartida `IDS-APP`. Los diez esquemas físicos usan el prefijo `C_`: `C_infra`, `C_platform`, `C_organization`, `C_identity`, `C_membership`, `C_authorization`, `C_audit`, `C_training`, `C_operations` y `C_inventory`.
@@ -68,7 +68,7 @@ Etapa 2. I0-001, I1-001, I1-002, I2-001, I2-002, I3-001 e I4-001 están completa
 
 - Los scripts `down` aún no se han ejecutado: deben probarse en una base temporal aislada, no sobre la base configurada que acaba de recibir el esquema.
 - Gmail quedó integrado mediante Nodemailer con `AUTH_PASS_APP`, remitente `Colportando App`, plantillas HTML/texto específicas para verificación y reset, y respuesta neutral aun si el proveedor falla. La conexión SMTP fue verificada sin enviar correo.
-- `AUTH_ACTION_BASE_URL` permanece en localhost para desarrollo; falta definir el dominio HTTPS o deep link Flutter definitivo antes de enviar enlaces a usuarios reales.
+- Verificación, recuperación e invitaciones ya no dependen de rutas web ni deep links: los correos entregan códigos para capturarlos en Flutter. La migración `0009_auth_action_codes` quedó aplicada e idempotente en la base compartida; los verificadores reales de autenticación e invitaciones aprobaron los recorridos y limpiaron sus fixtures.
 - Ventas y finanzas siguen pendientes de sus incrementos y reglas aprobadas. El corte Backend V1-A no incluye stock interno, ventas, pagos, créditos ni bonificaciones.
 - El manual Kerusso describe organización y funciones; no prueba por sí solo todas las reglas del programa institucional.
 - La presentación de bonificación aporta ejemplos/reglas de Verano 2026 que deben validarse con Finanzas antes de convertirse en fórmulas del sistema.

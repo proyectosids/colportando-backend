@@ -1,4 +1,4 @@
-import { createHmac, randomBytes } from "node:crypto";
+import { createHmac, randomBytes, randomInt } from "node:crypto";
 
 import { jwtVerify, SignJWT } from "jose";
 
@@ -18,6 +18,15 @@ export class JoseAuthTokenCodec implements AuthTokenCodec {
 
   public createOpaqueToken(): string {
     return randomBytes(32).toString("base64url");
+  }
+
+  public createNumericCode(length: number): string {
+    return Array.from({ length }, () => String(randomInt(10))).join("");
+  }
+
+  public createHumanCode(length: number): string {
+    const alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+    return Array.from({ length }, () => alphabet[randomInt(alphabet.length)]).join("");
   }
 
   public hashOpaqueToken(token: string): Buffer {

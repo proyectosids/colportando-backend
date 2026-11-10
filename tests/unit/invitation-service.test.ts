@@ -50,7 +50,7 @@ describe("InvitationService", () => {
 
   it("accepts a new account only as a pending aspirant", async () => {
     const { service, acceptInvitation } = fixtures();
-    const result = await service.accept({ token: "opaque-invitation-token-with-enough-entropy", password: "Secure-password-123!", givenNames: "Ana", familyName: "López", idempotencyKey: "accept-request-001", correlationId: "6f8ee7e2-78a8-4cf5-943e-a67b970b0a14" });
+    const result = await service.accept({ email: context.targetEmail, code: "K7M2P9Q4X6RT", password: "Secure-password-123!", givenNames: "Ana", familyName: "López", idempotencyKey: "accept-request-001", correlationId: "6f8ee7e2-78a8-4cf5-943e-a67b970b0a14" });
     expect(result).toMatchObject({ membershipStatus: "PENDING", memberCondition: "ASPIRANT", emailVerified: true });
     const acceptedInput = acceptInvitation.mock.calls[0]?.[0] as Parameters<InvitationStore["acceptInvitation"]>[0] | undefined;
     expect(acceptedInput).toMatchObject({ givenNames: "Ana", familyName: "López", newAccount: { passwordHash: "argon-hash" } });
@@ -60,7 +60,7 @@ describe("InvitationService", () => {
     const replay = { accountId: "616ef081-6319-4c77-99d7-445bc64022fc", personId: "93932f10-8732-449c-b7fb-6530fd8aa782", membershipId: "7f7bdfcb-8798-470b-9859-30840a6fb860", membershipStatus: "PENDING" as const, memberCondition: "ASPIRANT" as const, emailVerified: true as const, replayed: true };
     const inspectInvitation = vi.fn().mockResolvedValue(null);
     const { service } = fixtures({ findAcceptanceReplay: vi.fn().mockResolvedValue(replay), inspectInvitation });
-    expect(await service.accept({ token: "opaque-invitation-token-with-enough-entropy", password: "Secure-password-123!", givenNames: "Ana", familyName: "López", idempotencyKey: "accept-request-001", correlationId: "6f8ee7e2-78a8-4cf5-943e-a67b970b0a14" })).toEqual(replay);
+    expect(await service.accept({ email: context.targetEmail, code: "K7M2P9Q4X6RT", password: "Secure-password-123!", givenNames: "Ana", familyName: "López", idempotencyKey: "accept-request-001", correlationId: "6f8ee7e2-78a8-4cf5-943e-a67b970b0a14" })).toEqual(replay);
     expect(inspectInvitation).not.toHaveBeenCalled();
   });
 });

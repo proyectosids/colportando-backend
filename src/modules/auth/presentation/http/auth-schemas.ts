@@ -8,7 +8,7 @@ export const loginRequestSchema = z.object({
 
 export const refreshRequestSchema = z.object({ refreshToken: z.string().min(32).max(512) }).strict();
 export const actionRequestSchema = z.object({ email: z.email().max(320) }).strict();
-export const actionConfirmSchema = z.object({ token: z.string().min(32).max(512) }).strict();
+export const actionConfirmSchema = z.object({ email: z.email().max(320), code: z.string().regex(/^\d{8}$/) }).strict();
 export const passwordResetConfirmSchema = actionConfirmSchema.extend({ newPassword: z.string().min(8).max(256) }).strict();
 
 export const tokenPairSchema = z.object({
@@ -34,11 +34,13 @@ export const createInvitationRequestSchema = z.object({
   email: z.email().max(320)
 }).strict();
 
-export const invitationTokenParamsSchema = z.object({ token: z.string().min(32).max(512) });
+export const invitationCodeSchema = z.object({ email: z.email().max(320), code: z.string().trim().regex(/^[A-Za-z0-9-]{12,15}$/) }).strict();
 export const idempotencyKeySchema = z.string().min(8).max(100).regex(/^[A-Za-z0-9._:-]+$/);
 export const idempotencyHeadersSchema = z.object({ "idempotency-key": idempotencyKeySchema });
 
 export const acceptInvitationRequestSchema = z.object({
+  email: z.email().max(320),
+  code: z.string().trim().regex(/^[A-Za-z0-9-]{12,15}$/),
   password: z.string().min(8).max(256),
   givenNames: z.string().trim().min(1).max(120),
   familyName: z.string().trim().min(1).max(120),

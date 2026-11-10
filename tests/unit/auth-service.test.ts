@@ -68,7 +68,7 @@ describe("AuthService", () => {
 
   it("enforces the password policy before consuming a reset token", async () => {
     const store = createStore();
-    await expect(createService(store).resetPassword("reset-token-that-is-long-enough", "short")).rejects.toBeInstanceOf(AppError);
+    await expect(createService(store).resetPassword("member@example.com", "48271936", "short")).rejects.toBeInstanceOf(AppError);
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(vi.mocked(store.consumePasswordReset)).not.toHaveBeenCalled();
   });

@@ -9,12 +9,16 @@ export type AuthServiceConfig = Readonly<{
   refreshTtlSeconds: number;
   sessionTtlSeconds: number;
   actionTokenTtlSeconds: number;
+  actionCodeLength?: number;
+  actionCodeMaxAttempts?: number;
+  actionCodeResendSeconds?: number;
   passwordMinLength: number;
 }>;
 
 export type TokenPair = Readonly<{ accessToken: string; refreshToken: string; tokenType: "Bearer"; expiresIn: number }>;
 
 const normalizeEmail = (email: string): string => email.trim().toLowerCase();
+const normalizeCode = (code: string): string => code.replace(/[\s-]/g, "");
 const addSeconds = (date: Date, seconds: number): Date => new Date(date.getTime() + seconds * 1_000);
 
 export class AuthService {
@@ -95,22 +99,25 @@ export class AuthService {
     ) return;
 
     const timestamp = this.now();
-    const rawToken = this.tokens.createOpaqueToken();
+    const codeLength = this.config.actionCodeLength ?? 8;
+    const code = this.tokens.createNumericCode?.(codeLength) ?? this.tokens.createOpaqueToken().slice(0, codeLength);
     const expiresAt = addSeconds(timestamp, this.config.actionTokenTtlSeconds);
-    await this.store.storeActionToken({ tokenId: randomUUID(), purpose, tokenHash: this.tokens.hashOpaqueToken(rawToken), accountId: account.accountId, email: account.email, now: timestamp, expiresAt });
-    await this.delivery.deliver({ purpose, email: account.email, token: rawToken, expiresAt });
+    const result = await this.store.storeActionToken({ tokenId: randomUUID(), purpose, tokenHash: this.hashCode(purpose, account.email, code), accountId: account.accountId, email: account.email, now: timestamp, expiresAt, maxAttempts: this.config.actionCodeMaxAttempts ?? 5, resendAfterSeconds: this.config.actionCodeResendSeconds ?? 60 });
+    if (result !== "TOO_SOON") await this.delivery.deliver({ purpose, email: account.email, code, expiresAt });
   }
 
-  public async verifyEmail(token: string): Promise<void> {
-    this.assertActionResult(await this.store.consumeEmailVerification(this.tokens.hashOpaqueToken(token), this.now()));
+  public async verifyEmail(email: string, code: string): Promise<void> {
+    const normalizedEmail = normalizeEmail(email);
+    this.assertActionResult(await this.store.consumeEmailVerification(normalizedEmail, this.hashCode("EMAIL_VERIFICATION", normalizedEmail, code), this.now()));
   }
 
-  public async resetPassword(token: string, newPassword: string): Promise<void> {
+  public async resetPassword(email: string, code: string, newPassword: string): Promise<void> {
     if (newPassword.length < this.config.passwordMinLength) {
       throw new AppError(400, "PASSWORD_POLICY_VIOLATION", `Password must contain at least ${String(this.config.passwordMinLength)} characters`);
     }
     const passwordHash = await this.passwords.hash(newPassword);
-    this.assertActionResult(await this.store.consumePasswordReset(this.tokens.hashOpaqueToken(token), passwordHash, this.now()));
+    const normalizedEmail = normalizeEmail(email);
+    this.assertActionResult(await this.store.consumePasswordReset(normalizedEmail, this.hashCode("PASSWORD_RESET", normalizedEmail, code), passwordHash, this.now()));
   }
 
   public async authenticateAccessToken(token: string) {
@@ -124,9 +131,13 @@ export class AuthService {
     }
   }
 
-  private assertActionResult(result: "CONSUMED" | "INVALID" | "EXPIRED" | "USED"): void {
+  private hashCode(purpose: AccountActionPurpose, email: string, code: string): Buffer {
+    return this.tokens.hashOpaqueToken(`${purpose}:${normalizeEmail(email)}:${normalizeCode(code)}`);
+  }
+
+  private assertActionResult(result: "CONSUMED" | "INVALID" | "EXPIRED" | "USED" | "ATTEMPTS_EXCEEDED"): void {
     if (result === "CONSUMED") return;
-    const code = result === "EXPIRED" ? "ACTION_TOKEN_EXPIRED" : result === "USED" ? "ACTION_TOKEN_USED" : "INVALID_ACTION_TOKEN";
-    throw new AppError(400, code, "Action token is invalid or no longer usable");
+    const errorCode = result === "EXPIRED" ? "ACTION_CODE_EXPIRED" : result === "USED" ? "ACTION_CODE_USED" : result === "ATTEMPTS_EXCEEDED" ? "ACTION_CODE_ATTEMPTS_EXCEEDED" : "INVALID_ACTION_CODE";
+    throw new AppError(400, errorCode, "Action code is invalid or no longer usable");
   }
 }

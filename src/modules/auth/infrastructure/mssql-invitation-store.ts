@@ -6,7 +6,7 @@ import type { CreateInvitationResult, InvitationContext, InvitationResult, Invit
 
 type ClubRow = Readonly<{ tenantId: string; clubId: string; clubName: string; institutionName: string }>;
 type IdempotencyRow = Readonly<{ requestHash: Buffer; responseJson: string }>;
-type InvitationRow = InvitationContext & Readonly<{ actionTokenId: string; tokenConsumedAt: Date | null; tokenRevokedAt: Date | null; invitationStatus: string; tenantStatus: string; clubStatus: string }>;
+type InvitationRow = InvitationContext & Readonly<{ actionTokenId: string; storedTokenHash: Buffer; failedAttempts: number; maxAttempts: number; tokenConsumedAt: Date | null; tokenRevokedAt: Date | null; invitationStatus: string; tenantStatus: string; clubStatus: string }>;
 
 const parseCreateResponse = (value: string): CreateInvitationResult => ({ ...(JSON.parse(value) as Omit<CreateInvitationResult, "expiresAt">), expiresAt: new Date((JSON.parse(value) as { expiresAt: string }).expiresAt), replayed: true });
 const parseAcceptResponse = (value: string): InvitationResult => ({ ...(JSON.parse(value) as Omit<InvitationResult, "replayed">), replayed: true });
@@ -39,15 +39,15 @@ export class MssqlInvitationStore implements InvitationStore {
       }
 
       const request = new sql.Request(transaction);
-      request.input("invitationId", sql.UniqueIdentifier, input.invitationId).input("actionTokenId", sql.UniqueIdentifier, input.actionTokenId).input("tenantId", sql.UniqueIdentifier, club.tenantId).input("clubId", sql.UniqueIdentifier, club.clubId).input("actor", sql.UniqueIdentifier, input.actorAccountId).input("email", sql.VarChar(320), input.targetEmail).input("tokenHash", sql.VarBinary(32), input.tokenHash).input("now", sql.DateTime2(3), input.now).input("expires", sql.DateTime2(3), input.expiresAt);
+      request.input("invitationId", sql.UniqueIdentifier, input.invitationId).input("actionTokenId", sql.UniqueIdentifier, input.actionTokenId).input("tenantId", sql.UniqueIdentifier, club.tenantId).input("clubId", sql.UniqueIdentifier, club.clubId).input("actor", sql.UniqueIdentifier, input.actorAccountId).input("email", sql.VarChar(320), input.targetEmail).input("tokenHash", sql.VarBinary(32), input.tokenHash).input("now", sql.DateTime2(3), input.now).input("expires", sql.DateTime2(3), input.expiresAt).input("maxAttempts", sql.Int, input.maxAttempts);
       await request.query(`
         UPDATE at SET revoked_at_utc=@now
         FROM [C_identity].action_token at JOIN [C_membership].club_invitation ci ON ci.action_token_id=at.action_token_id
         WHERE ci.tenant_id=@tenantId AND ci.club_id=@clubId AND ci.target_email_normalized=@email AND ci.status='PENDING' AND at.consumed_at_utc IS NULL AND at.revoked_at_utc IS NULL;
         UPDATE [C_membership].club_invitation SET status='REVOKED', revoked_at_utc=@now
         WHERE tenant_id=@tenantId AND club_id=@clubId AND target_email_normalized=@email AND status='PENDING';
-        INSERT INTO [C_identity].action_token (action_token_id,purpose,token_hash,tenant_id,club_id,target_email_normalized,issued_at_utc,expires_at_utc,created_by_account_id)
-        VALUES (@actionTokenId,'CLUB_INVITATION',@tokenHash,@tenantId,@clubId,@email,@now,@expires,@actor);
+        INSERT INTO [C_identity].action_token (action_token_id,purpose,token_hash,tenant_id,club_id,target_email_normalized,issued_at_utc,expires_at_utc,created_by_account_id,max_attempts)
+        VALUES (@actionTokenId,'CLUB_INVITATION',@tokenHash,@tenantId,@clubId,@email,@now,@expires,@actor,@maxAttempts);
         INSERT INTO [C_membership].club_invitation (invitation_id,tenant_id,club_id,action_token_id,target_email_normalized,invited_by_account_id,created_at_utc,expires_at_utc)
         VALUES (@invitationId,@tenantId,@clubId,@actionTokenId,@email,@actor,@now,@expires);
       `);
@@ -59,17 +59,29 @@ export class MssqlInvitationStore implements InvitationStore {
     } catch (error) { await transaction.rollback().catch(() => undefined); throw error; }
   }
 
-  public async inspectInvitation(tokenHash: Buffer, now: Date): Promise<InvitationContext | null> {
-    const result = await this.pool.request().input("hash", sql.VarBinary(32), tokenHash).input("now", sql.DateTime2(3), now).query<InvitationContext>(`
-      SELECT ci.invitation_id AS invitationId, ci.tenant_id AS tenantId, ci.club_id AS clubId, c.name AS clubName, i.display_name AS institutionName, ci.target_email_normalized AS targetEmail, ci.expires_at_utc AS expiresAt
+  public async inspectInvitation(email: string, tokenHash: Buffer, now: Date): Promise<InvitationContext | null> {
+    const transaction = new sql.Transaction(this.pool); await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+    try {
+      const result = await new sql.Request(transaction).input("email", sql.VarChar(320), email).input("now", sql.DateTime2(3), now).query<InvitationRow>(`
+      SELECT TOP (1) ci.invitation_id AS invitationId, ci.tenant_id AS tenantId, ci.club_id AS clubId, c.name AS clubName, i.display_name AS institutionName, ci.target_email_normalized AS targetEmail, ci.expires_at_utc AS expiresAt,
+        ci.action_token_id AS actionTokenId, at.token_hash AS storedTokenHash, at.failed_attempt_count AS failedAttempts, at.max_attempts AS maxAttempts, at.consumed_at_utc AS tokenConsumedAt, at.revoked_at_utc AS tokenRevokedAt, ci.status AS invitationStatus, t.service_status AS tenantStatus, c.status AS clubStatus
       FROM [C_membership].club_invitation ci
-      JOIN [C_identity].action_token at ON at.action_token_id=ci.action_token_id
+      JOIN [C_identity].action_token at WITH (UPDLOCK,HOLDLOCK) ON at.action_token_id=ci.action_token_id
       JOIN [C_organization].club c ON c.tenant_id=ci.tenant_id AND c.club_id=ci.club_id
       JOIN [C_organization].institution i ON i.tenant_id=c.tenant_id AND i.institution_id=c.institution_id
       JOIN [C_platform].tenant t ON t.tenant_id=ci.tenant_id
-      WHERE at.token_hash=@hash AND at.purpose='CLUB_INVITATION' AND ci.status='PENDING' AND ci.expires_at_utc>@now AND at.expires_at_utc>@now AND at.consumed_at_utc IS NULL AND at.revoked_at_utc IS NULL AND c.status='ACTIVE' AND i.status='ACTIVE' AND t.service_status='ACTIVE';
+      WHERE ci.target_email_normalized=@email AND at.purpose='CLUB_INVITATION' ORDER BY ci.created_at_utc DESC;
     `);
-    return result.recordset[0] ?? null;
+      const row = result.recordset[0];
+      if (row === undefined || row.invitationStatus !== "PENDING" || row.expiresAt <= now || row.tokenConsumedAt !== null || row.tokenRevokedAt !== null || row.tenantStatus !== "ACTIVE" || row.clubStatus !== "ACTIVE") { await transaction.commit(); return null; }
+      if (!row.storedTokenHash.equals(tokenHash)) {
+        const failed = row.failedAttempts + 1;
+        await new sql.Request(transaction).input("tokenId", sql.UniqueIdentifier, row.actionTokenId).input("failed", sql.Int, failed).input("now", sql.DateTime2(3), now).query(`UPDATE [C_identity].action_token SET failed_attempt_count=@failed, revoked_at_utc=CASE WHEN @failed>=max_attempts THEN @now ELSE revoked_at_utc END WHERE action_token_id=@tokenId;`);
+        await transaction.commit(); return null;
+      }
+      await transaction.commit();
+      return { invitationId: row.invitationId, tenantId: row.tenantId, clubId: row.clubId, clubName: row.clubName, institutionName: row.institutionName, targetEmail: row.targetEmail, expiresAt: row.expiresAt };
+    } catch (error) { await transaction.rollback().catch(() => undefined); throw error; }
   }
 
   public async findAcceptanceReplay(tokenHash: Buffer, idempotencyKey: string, requestHash: Buffer): Promise<InvitationResult | "IDEMPOTENCY_CONFLICT" | null> {
@@ -87,7 +99,7 @@ export class MssqlInvitationStore implements InvitationStore {
     const transaction = new sql.Transaction(this.pool);
     await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
     try {
-      const invitationResult = await new sql.Request(transaction).input("hash", sql.VarBinary(32), input.tokenHash).query<InvitationRow>(`
+      const invitationResult = await new sql.Request(transaction).input("hash", sql.VarBinary(32), input.tokenHash).input("email", sql.VarChar(320), input.targetEmail).query<InvitationRow>(`
         SELECT ci.invitation_id AS invitationId, ci.tenant_id AS tenantId, ci.club_id AS clubId, c.name AS clubName, i.display_name AS institutionName, ci.target_email_normalized AS targetEmail, ci.expires_at_utc AS expiresAt,
           ci.action_token_id AS actionTokenId, at.consumed_at_utc AS tokenConsumedAt, at.revoked_at_utc AS tokenRevokedAt, ci.status AS invitationStatus, t.service_status AS tenantStatus, c.status AS clubStatus
         FROM [C_membership].club_invitation ci WITH (UPDLOCK,HOLDLOCK)
@@ -95,7 +107,7 @@ export class MssqlInvitationStore implements InvitationStore {
         JOIN [C_organization].club c ON c.tenant_id=ci.tenant_id AND c.club_id=ci.club_id
         JOIN [C_organization].institution i ON i.tenant_id=c.tenant_id AND i.institution_id=c.institution_id
         JOIN [C_platform].tenant t ON t.tenant_id=ci.tenant_id
-        WHERE at.token_hash=@hash AND at.purpose='CLUB_INVITATION';
+        WHERE at.token_hash=@hash AND ci.target_email_normalized=@email AND at.purpose='CLUB_INVITATION';
       `);
       const invitation = invitationResult.recordset[0];
       if (invitation === undefined) { await transaction.commit(); return "INVALID"; }

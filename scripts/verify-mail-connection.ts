@@ -10,6 +10,6 @@ if (config.mail.adapter !== "gmail" || config.mail.email === undefined || config
   throw new Error("Gmail delivery is not fully configured");
 }
 
-const delivery = new GmailActionTokenDelivery({ email: config.mail.email, password: config.mail.password, fromName: config.mail.fromName, actionBaseUrl: config.mail.actionBaseUrl }, pino({ level: "silent" }));
+const delivery = new GmailActionTokenDelivery({ email: config.mail.email, password: config.mail.password, fromName: config.mail.fromName }, pino({ level: "silent" }));
 await delivery.verifyConnection();
 process.stdout.write("Gmail SMTP connection verified. No email was sent.\n");

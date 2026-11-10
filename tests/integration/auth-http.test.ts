@@ -82,15 +82,15 @@ describe("authentication HTTP API", () => {
     const { app } = dependencies();
     const created = await request(app).post("/api/v1/auth/invitations").set("authorization", "Bearer signed-access-token").set("idempotency-key", "invite-http-001").send({ clubId: "1454389c-dc3c-411a-ad84-1f2e294470bc", email: "member@example.com" }).expect(202);
     expect(created.body).toMatchObject({ invitationId: "8b362786-e89a-42bd-b527-ccac260fcd2f", status: "PENDING", replayed: false });
-    const inspected = await request(app).get("/api/v1/auth/invitations/opaque-invitation-token-with-enough-entropy").expect(200);
+    const inspected = await request(app).post("/api/v1/auth/invitations/inspect").send({ email: account.email, code: "K7M2P9Q4X6RT" }).expect(200);
     expect(inspected.body).toMatchObject({ clubName: "Club Central", institutionName: "Universidad Linda Vista" });
   });
 
   it("accepts only the server-defined pending aspirant outcome", async () => {
     const { app } = dependencies();
-    const accepted = await request(app).post("/api/v1/auth/invitations/opaque-invitation-token-with-enough-entropy/accept").set("idempotency-key", "accept-http-001").send({ password: "Valid-password-123!", givenNames: "Ana", familyName: "López" }).expect(201);
+    const accepted = await request(app).post("/api/v1/auth/invitations/accept").set("idempotency-key", "accept-http-001").send({ email: account.email, code: "K7M2P9Q4X6RT", password: "Valid-password-123!", givenNames: "Ana", familyName: "López" }).expect(201);
     expect(accepted.body).toMatchObject({ membershipStatus: "PENDING", memberCondition: "ASPIRANT" });
-    const elevated = await request(app).post("/api/v1/auth/invitations/opaque-invitation-token-with-enough-entropy/accept").set("idempotency-key", "accept-http-002").send({ password: "Valid-password-123!", givenNames: "Ana", familyName: "López", memberCondition: "COLPORTOR" }).expect(400);
+    const elevated = await request(app).post("/api/v1/auth/invitations/accept").set("idempotency-key", "accept-http-002").send({ email: account.email, code: "K7M2P9Q4X6RT", password: "Valid-password-123!", givenNames: "Ana", familyName: "López", memberCondition: "COLPORTOR" }).expect(400);
     expect(errorResponseSchema.parse(elevated.body as unknown).error.code).toBe("VALIDATION_ERROR");
   });
 });

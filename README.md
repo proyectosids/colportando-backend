@@ -26,7 +26,7 @@ Con `PORT=3000`:
 
 ## Autenticación
 
-I1-001 expone bajo `/api/v1/auth`: login, refresh rotativo, logout, verificación de correo, recuperación de contraseña y `/me`. Los access tokens son JWT cortos y los refresh/action tokens sólo se guardan como HMAC. La reutilización de un refresh token revoca su familia y sesión.
+I1-001 expone bajo `/api/v1/auth`: login, refresh rotativo, logout, verificación de correo, recuperación de contraseña y `/me`. Los access tokens son JWT cortos; los refresh tokens y códigos de acción sólo se guardan como HMAC. La reutilización de un refresh token revoca su familia y sesión.
 
 I1-002 añade creación, consulta y aceptación de invitaciones bajo `/api/v1/auth/invitations`. Crear y aceptar exige `Idempotency-Key`; sólo un actor con `membership.invitation.create` en el alcance correspondiente puede invitar. El cliente público no envía tenant, rol, cargo ni condición: el resultado está cerrado a membresía `PENDING` y condición `ASPIRANT`.
 
@@ -34,14 +34,14 @@ Los secretos y TTL se configuran con `JWT_*`, `ACTION_TOKEN_PEPPER` y `AUTH_*`; 
 
 ### Correo de autenticación
 
-El adaptador Gmail envía correo HTML y texto alternativo con identidad `Colportando App <AUTH_EMAIL>`. Usa `AUTH_PASS_APP` con prioridad sobre `AUTH_PASS`; Google requiere una contraseña de aplicación cuando la cuenta tiene verificación en dos pasos. `AUTH_ACTION_BASE_URL` define el destino fijo de los botones y evita aceptar redirecciones proporcionadas por el cliente.
+El adaptador Gmail envía correo HTML y texto alternativo con identidad `Colportando App <AUTH_EMAIL>`. Usa `AUTH_PASS_APP` con prioridad sobre `AUTH_PASS`; Google requiere una contraseña de aplicación cuando la cuenta tiene verificación en dos pasos. Los mensajes muestran un código de un solo uso y no dependen de un frontend web.
 
 ```powershell
 npm run mail:verify   # valida SMTP, no envía correo
 npm run mail:preview  # genera HTML local en tmp/email-previews
 ```
 
-En desarrollo la URL de acciones puede apuntar a localhost. Antes de producción debe cambiarse por HTTPS o por el esquema de enlace profundo aprobado para Flutter.
+Los códigos de verificación y recuperación vencen en 10 minutos por defecto, se invalidan al reenviar y se bloquean después del máximo de intentos configurado.
 
 ## Migraciones
 
